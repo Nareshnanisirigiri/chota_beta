@@ -1,34 +1,98 @@
-import React from 'react';
-import { ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { toast } from 'sonner';
+import { ChevronDown, ArrowLeft } from 'lucide-react';
 import Navbar from '../Navbar';
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://chotabeta-backend.onrender.com');
 
 interface StoreDetailsProps {
   onLogout: () => void;
   onNavigate: (page: string) => void;
-  storeData?: any; // In a real app, this would be fetched or passed
+  storeData?: any;
 }
 
 export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreDetailsProps) {
-  // Mock data based on the screenshot since we're just doing UI
-  const data = storeData || {
-    name: 'Meat Mart',
-    visibilityStatus: 'Visible',
-    verificationStatus: 'Approved',
-    fulfillmentType: 'Hyperlocal',
-    contactEmail: 'soori.916@gmail.com',
-    contactNumber: '08886660031',
-    address: '55V5+4PV, Rajampet, Andhra Pradesh 516115, India',
-    city: 'Rajampet',
-    state: 'Andhra Pradesh',
-    landmark: 'Rs road',
-    zipcode: '516115',
-    country: 'India',
-    countryCode: '91',
-    latitude: '14.19286040',
-    longitude: '79.15929970',
-    deliveryZoneId: '',
-    timing: '',
-    storeStatus: 'ONLINE'
+  const [data, setData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Selection states for form
+  const [verificationSelect, setVerificationSelect] = useState('approved');
+  const [visibilitySelect, setVisibilitySelect] = useState('visible');
+
+  const storeId = sessionStorage.getItem('view_store_id');
+
+  useEffect(() => {
+    if (storeData) {
+      setData(storeData);
+      setVerificationSelect(storeData.verificationStatus || 'approved');
+      setVisibilitySelect(storeData.visibilityStatus || 'visible');
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchStoreDetails = async () => {
+      if (!storeId) {
+        toast.error('No store selected');
+        onNavigate('stores');
+        return;
+      }
+      
+      setIsLoading(true);
+      try {
+        const response = await axios.get(`${BASE_URL}/api/stores/${storeId}`);
+        if (response.data.success) {
+          const store = response.data.data;
+          setData(store);
+          
+          // Map initial values
+          setVerificationSelect(store.verificationStatus || 'approved');
+          setVisibilitySelect(store.visibilityStatus || 'visible');
+        } else {
+          toast.error(response.data.message || 'Failed to load store details');
+        }
+      } catch (error: any) {
+        console.error('Error fetching store details:', error);
+        toast.error('Failed to connect to database');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStoreDetails();
+  }, [storeId, storeData]);
+
+  const handleSubmit = async () => {
+    if (!storeId) {
+      toast.error('No store selected');
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      const response = await axios.put(`${BASE_URL}/api/stores/${storeId}/status`, {
+        verificationStatus: verificationSelect,
+        visibilityStatus: visibilitySelect
+      });
+      
+      if (response.data.success) {
+        toast.success('Store status updated successfully!');
+        // Update local state
+        setData((prev: any) => ({
+          ...prev,
+          verificationStatus: verificationSelect,
+          visibilityStatus: visibilitySelect
+        }));
+      } else {
+        toast.error(response.data.message || 'Failed to update store status');
+      }
+    } catch (error) {
+      console.error('Error updating store status:', error);
+      toast.error('Failed to update store status');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -56,7 +120,7 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
             fontWeight: "400",
             border: `1px solid ${badgeType === 'success' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(52, 152, 219, 0.2)'}`
           }}>
-            {value.toUpperCase()}
+            {String(value || '').toUpperCase()}
           </span>
         ) : (
           <span style={{ color: '#94a3b8' }}>{value || '—'}</span>
@@ -64,6 +128,24 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
       </div>
     </div>
   );
+
+  if (isLoading) {
+    return (
+      <div style={{ backgroundColor: '#070b14', minHeight: '100vh', width: '100%', padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', boxSizing: 'border-box' }}>
+        <div style={{ width: '48px', height: '48px', border: '4px solid #3b82f6', borderTopColor: 'transparent', borderRadius: '50%' }} className="animate-spin"></div>
+        <p style={{ color: '#94a3b8', fontSize: '13px', marginTop: '16px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Loading Store details from Database...</p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div style={{ backgroundColor: '#070b14', minHeight: '100vh', width: '100%', padding: '32px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', boxSizing: 'border-box' }}>
+        <p style={{ color: '#ef4444', fontSize: '15px' }}>Store not found or failed to load.</p>
+        <button onClick={() => onNavigate('stores')} style={{ marginTop: '16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>Back to Stores</button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ backgroundColor: '#070b14', minHeight: '100vh', width: '100%', padding: '32px', position: 'relative', boxSizing: 'border-box' }}>
@@ -80,13 +162,35 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
         boxSizing: 'border-box',
         marginBottom: '24px'
       }}>
-        <h1 style={{ fontSize: '18px', color: 'white', margin: 0 }}>{data.name} Stores</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', fontSize: '13px' }}>
-          <span style={{ color: '#007bff', fontWeight: "400", cursor: 'pointer' }} onClick={() => onNavigate('dashboard')}>Home</span>
-          <span style={{ color: '#64748b' }}>/</span>
-          <span style={{ color: '#007bff', fontWeight: "400", cursor: 'pointer' }} onClick={() => onNavigate('stores')}>Stores</span>
-          <span style={{ color: '#64748b' }}>/</span>
-          <span style={{ color: 'white' }}>{data.name}</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ fontSize: '18px', color: 'white', margin: 0 }}>{data.name} Store Details</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', fontSize: '13px' }}>
+              <span style={{ color: '#007bff', fontWeight: "400", cursor: 'pointer' }} onClick={() => onNavigate('dashboard')}>Home</span>
+              <span style={{ color: '#64748b' }}>/</span>
+              <span style={{ color: '#007bff', fontWeight: "400", cursor: 'pointer' }} onClick={() => onNavigate('stores')}>Stores</span>
+              <span style={{ color: '#64748b' }}>/</span>
+              <span style={{ color: 'white' }}>{data.name}</span>
+            </div>
+          </div>
+          <button 
+            onClick={() => onNavigate('stores')}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              backgroundColor: 'transparent', 
+              color: '#3b82f6', 
+              border: '2px solid #3b82f6', 
+              borderRadius: '12px', 
+              padding: '6px 16px', 
+              fontSize: '13px', 
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
+            <ArrowLeft size={14} /> Back to Stores
+          </button>
         </div>
       </div>
 
@@ -95,9 +199,9 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <Section title="About">
             <InfoRow label="Name" value={data.name} />
-            <InfoRow label="Visibility Status" value={data.visibilityStatus} isBadge badgeType="info" />
-            <InfoRow label="Verification Status" value={data.verificationStatus} isBadge badgeType="success" />
-            <InfoRow label="Fulfillment Type" value={data.fulfillmentType} />
+            <InfoRow label="Visibility Status" value={data.visibilityStatus || 'draft'} isBadge badgeType="info" />
+            <InfoRow label="Verification Status" value={data.verificationStatus || 'not_approved'} isBadge badgeType="success" />
+            <InfoRow label="Fulfillment Type" value={data.fulfillmentType || 'hyperlocal'} />
           </Section>
 
           <Section title="Contact Information">
@@ -115,15 +219,15 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
           <InfoRow label="Zipcode" value={data.zipcode} />
           <InfoRow label="Country" value={data.country} />
           <InfoRow label="Country Code" value={data.countryCode} />
-          <InfoRow label="Latitude" value={data.latitude} />
-          <InfoRow label="Longitude" value={data.longitude} />
-          <InfoRow label="Delivery Zone ID" value={data.deliveryZoneId} />
+          <InfoRow label="Latitude" value={data.latitude ? String(data.latitude) : ''} />
+          <InfoRow label="Longitude" value={data.longitude ? String(data.longitude) : ''} />
+          <InfoRow label="Delivery Zone ID" value={data.deliveryZoneId ? String(data.deliveryZoneId) : '—'} />
         </Section>
 
         {/* Right Column */}
         <Section title="Operational & Timing">
           <InfoRow label="Timing" value={data.timing} />
-          <InfoRow label="Store Status" value={data.storeStatus} isBadge badgeType="success" />
+          <InfoRow label="Store Status" value={data.status || 'online'} isBadge badgeType="success" />
         </Section>
       </div>
 
@@ -131,13 +235,13 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px', marginTop: '24px' }}>
         <Section title="Financial & Bank Details">
           <InfoRow label="Currency Code" value={data.currencyCode || 'INR'} />
-          <InfoRow label="Tax Name" value={data.taxName || 'Gst'} />
-          <InfoRow label="Tax Number" value={data.taxNumber || '57888999987'} />
-          <InfoRow label="Bank Name" value={data.bankName || 'Hdfc'} />
-          <InfoRow label="Bank Branch Code" value={data.bankBranchCode || 'Rajampet'} />
-          <InfoRow label="Account Holder Name" value={data.accountHolderName || 'Saidabe'} />
-          <InfoRow label="Account Number" value={data.accountNumber || '58566338055'} />
-          <InfoRow label="Routing Number" value={data.routingNumber || '565253'} />
+          <InfoRow label="Tax Name" value={data.taxName || 'GST'} />
+          <InfoRow label="Tax Number" value={data.taxNumber} />
+          <InfoRow label="Bank Name" value={data.bankName} />
+          <InfoRow label="Bank Branch Code" value={data.bankBranchCode} />
+          <InfoRow label="Account Holder Name" value={data.accountHolderName} />
+          <InfoRow label="Account Number" value={data.accountNumber} />
+          <InfoRow label="Routing Number" value={data.routingNumber} />
           <InfoRow label="Bank Account Type" value={data.bankAccountType || 'savings'} />
         </Section>
 
@@ -146,7 +250,7 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
             <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
               <div style={{ width: '100px', height: '100px', backgroundColor: '#0c111d', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #2d3748' }}>
                 <img
-                  src="https://via.placeholder.com/100?text=LOGO"
+                  src={data.logo || "https://via.placeholder.com/100?text=LOGO"}
                   alt="Logo"
                   style={{ maxWidth: '100%', maxHeight: '100%' }}
                 />
@@ -156,7 +260,7 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
           <Section title="Address Proof">
             <div style={{ width: '100%', height: '100px', backgroundColor: '#0c111d', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #2d3748' }}>
               <img
-                src="https://via.placeholder.com/200x100?text=Address+Proof"
+                src={data.addressProof || "https://via.placeholder.com/200x100?text=Address+Proof"}
                 alt="Address Proof"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
@@ -168,7 +272,7 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
           <Section title="Banner">
             <div style={{ width: '100%', height: '100px', backgroundColor: '#0c111d', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #2d3748' }}>
               <img
-                src="https://via.placeholder.com/300x100?text=Banner"
+                src={data.banner || "https://via.placeholder.com/300x100?text=Banner"}
                 alt="Banner"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
@@ -177,7 +281,7 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
           <Section title="Voided Check">
             <div style={{ width: '100%', height: '100px', backgroundColor: '#0c111d', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #2d3748' }}>
               <img
-                src="https://via.placeholder.com/300x100?text=Voided+Check"
+                src={data.voidedCheck || "https://via.placeholder.com/300x100?text=Voided+Check"}
                 alt="Voided Check"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
@@ -195,10 +299,13 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
                 Verification Status <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
-                <select style={{ width: '100%', backgroundColor: '#0c111d', border: '1px solid #2d3748', borderRadius: '4px', padding: '10px 12px', fontSize: '13px', color: '#94a3b8', cursor: 'pointer', appearance: 'none' }}>
-                  <option>Approved</option>
-                  <option>Pending</option>
-                  <option>Rejected</option>
+                <select 
+                  value={verificationSelect}
+                  onChange={(e) => setVerificationSelect(e.target.value)}
+                  style={{ width: '100%', backgroundColor: '#0c111d', border: '1px solid #2d3748', borderRadius: '4px', padding: '10px 12px', fontSize: '13px', color: '#94a3b8', cursor: 'pointer', appearance: 'none' }}
+                >
+                  <option value="approved">Approved</option>
+                  <option value="not_approved">Not Approved</option>
                 </select>
                 <ChevronDown size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#64748b' }} />
               </div>
@@ -208,17 +315,37 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
                 Visibility Status <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
-                <select style={{ width: '100%', backgroundColor: '#0c111d', border: '1px solid #2d3748', borderRadius: '4px', padding: '10px 12px', fontSize: '13px', color: '#94a3b8', cursor: 'pointer', appearance: 'none' }}>
-                  <option>Visible</option>
-                  <option>Hidden</option>
+                <select 
+                  value={visibilitySelect}
+                  onChange={(e) => setVisibilitySelect(e.target.value)}
+                  style={{ width: '100%', backgroundColor: '#0c111d', border: '1px solid #2d3748', borderRadius: '4px', padding: '10px 12px', fontSize: '13px', color: '#94a3b8', cursor: 'pointer', appearance: 'none' }}
+                >
+                  <option value="visible">Visible</option>
+                  <option value="draft">Hidden/Draft</option>
                 </select>
                 <ChevronDown size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#64748b' }} />
               </div>
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
-            <button style={{ backgroundColor: '#007bff', color: 'white', padding: '10px 24px', borderRadius: '6px', fontSize: '13px', border: 'none', cursor: 'pointer', fontWeight: "400" }}>
-              Submit
+            <button 
+              onClick={handleSubmit}
+              disabled={isSaving}
+              style={{ 
+                backgroundColor: '#3b82f6', 
+                color: 'white', 
+                padding: '10px 24px', 
+                borderRadius: '12px', 
+                fontSize: '13px', 
+                border: 'none', 
+                cursor: isSaving ? 'not-allowed' : 'pointer', 
+                fontWeight: "500",
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              {isSaving ? 'Saving...' : 'Submit'}
             </button>
           </div>
         </Section>

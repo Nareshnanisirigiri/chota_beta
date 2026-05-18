@@ -32,10 +32,10 @@ export default function PendingApprovalProducts({ onLogout, onNavigate }: Pendin
 
   if (viewingProduct) {
     return (
-      <ProductDetails 
-        onLogout={onLogout} 
-        onBack={() => setViewingProduct(null)} 
-        product={viewingProduct} 
+      <ProductDetails
+        onLogout={onLogout}
+        onBack={() => setViewingProduct(null)}
+        product={viewingProduct}
       />
     );
   }
@@ -46,7 +46,7 @@ export default function PendingApprovalProducts({ onLogout, onNavigate }: Pendin
 
       {/* Main Container Card */}
       <div className="dashboard-card p-6 shadow-2xl overflow-hidden bg-[#111827] border-[#1e293b] mt-8">
-        
+
         {/* Row 1: Header and Primary Buttons */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -59,7 +59,7 @@ export default function PendingApprovalProducts({ onLogout, onNavigate }: Pendin
           </div>
 
           <div className="flex items-center gap-2">
-            {[ "Product Type", "Product Status", "Pending verification", "Category" ].map((filter, idx) => (
+            {["Product Type", "Product Status", "Pending verification", "Category"].map((filter, idx) => (
               <div key={idx} className="relative min-w-[140px]">
                 <select className="w-full bg-[#1e2736] border border-[#2d3748] rounded-md px-3 py-1.5 text-[12px] text-slate-300 appearance-none focus:outline-none cursor-pointer">
                   <option>{filter}</option>
@@ -67,7 +67,7 @@ export default function PendingApprovalProducts({ onLogout, onNavigate }: Pendin
                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
               </div>
             ))}
-            <button 
+            <button
               onMouseEnter={() => setHoveredBtn('refresh')}
               onMouseLeave={() => setHoveredBtn(null)}
               className="flex items-center gap-2 px-4 py-1.5 transition-all duration-300 text-[13px] font-medium active:scale-95"
@@ -105,7 +105,7 @@ export default function PendingApprovalProducts({ onLogout, onNavigate }: Pendin
             <button className="bg-[#0a0f18] border border-[#2d3748] px-4 py-1.5 rounded-xl text-[13px] text-slate-200">
               Columns <ChevronDown size={14} className="inline opacity-60" />
             </button>
-            <button 
+            <button
               onMouseEnter={() => setHoveredBtn('export')}
               onMouseLeave={() => setHoveredBtn(null)}
               className="flex items-center gap-2 px-4 py-1.5 text-[13px] font-medium transition-all duration-300 active:scale-95"

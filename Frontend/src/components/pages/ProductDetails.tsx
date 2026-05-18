@@ -1,6 +1,10 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import Navbar from '../Navbar';
+import axios from 'axios';
+import { toast } from 'sonner';
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://chotabeta-backend.onrender.com');
 
 interface ProductDetailsProps {
   onLogout: () => void;
@@ -10,6 +14,37 @@ interface ProductDetailsProps {
 
 export default function ProductDetails({ onLogout, onBack, product }: ProductDetailsProps) {
   const [hoveredBtn, setHoveredBtn] = React.useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = React.useState<string>(() => {
+    const status = String(product?.approvalStatus || '').toLowerCase();
+    if (status === 'approved' || status === 'active') return 'approved';
+    if (status === 'rejected') return 'rejected';
+    return 'pending_verification';
+  });
+  const [isUpdating, setIsUpdating] = React.useState(false);
+
+  const handleUpdateStatus = async () => {
+    if (!product?.id) {
+      toast.error('Product ID not found');
+      return;
+    }
+    setIsUpdating(true);
+    try {
+      const response = await axios.put(`${BASE_URL}/api/products/${product.id}/status`, {
+        status: selectedStatus
+      });
+      if (response.data.success) {
+        toast.success('Product status updated successfully!');
+        onBack();
+      } else {
+        toast.error(response.data.message || 'Failed to update status');
+      }
+    } catch (error: any) {
+      console.error('Error updating status:', error);
+      toast.error(error.response?.data?.message || 'Failed to update product status');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
   const data = {
     name: product?.title || 'Mixed Mandi',
     type: product?.type || 'Simple',
@@ -152,28 +187,34 @@ export default function ProductDetails({ onLogout, onBack, product }: ProductDet
               Verification Status
             </div>
             <div style={{ position: 'relative' }}>
-              <select style={{
-                width: '100%',
-                backgroundColor: '#0c111d',
-                border: '1px solid #2d3748',
-                borderRadius: '6px',
-                padding: '12px',
-                fontSize: '14px',
-                color: 'white',
-                cursor: 'pointer',
-                appearance: 'none',
-                outline: 'none'
-              }}>
-                <option>Approved</option>
-                <option>Pending</option>
-                <option>Rejected</option>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                style={{
+                  width: '100%',
+                  backgroundColor: '#0c111d',
+                  border: '1px solid #2d3748',
+                  borderRadius: '6px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  appearance: 'none',
+                  outline: 'none'
+                }}
+              >
+                <option value="approved">Approved</option>
+                <option value="pending_verification">Pending</option>
+                <option value="rejected">Rejected</option>
               </select>
               <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#64748b' }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
               </div>
             </div>
           </div>
-          <button 
+          <button
+            onClick={handleUpdateStatus}
+            disabled={isUpdating}
             onMouseEnter={() => setHoveredBtn('update')}
             onMouseLeave={() => setHoveredBtn(null)}
             style={{
@@ -184,11 +225,12 @@ export default function ProductDetails({ onLogout, onBack, product }: ProductDet
               fontSize: '14px',
               fontWeight: "200",
               border: '2px solid #3b82f6',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease'
+              cursor: isUpdating ? 'not-allowed' : 'pointer',
+              transition: 'all 0.3s ease',
+              opacity: isUpdating ? 0.7 : 1
             }}
           >
-            Update Status
+            {isUpdating ? 'Updating...' : 'Update Status'}
           </button>
         </Section>
 
@@ -205,9 +247,12 @@ export default function ProductDetails({ onLogout, onBack, product }: ProductDet
               overflow: 'hidden'
             }}>
               <img
-                src={product?.image || "https://images.unsplash.com/photo-1541518139221-31c99a2f2432?q=80&w=1470&auto=format&fit=crop"}
+                src={product?.image || "https://via.placeholder.com/150?text=Product"}
                 alt="Product"
                 style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Product';
+                }}
               />
             </div>
           </div>

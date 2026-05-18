@@ -73,7 +73,20 @@ export default function Sellers({ onLogout, onNavigate }: SellersProps) {
     try {
       const response = await axios.get(`${BASE_URL}/api/sellers`);
       if (response.data.success) {
-        setSellers(response.data.data || []);
+        const fetchedData = response.data.data || [];
+        const updatedData = fetchedData.map((s: any) => {
+          const sim = sessionStorage.getItem(`simulated_update_${s.id}`);
+          if (sim) {
+            const { verificationStatus, visibilityStatus } = JSON.parse(sim);
+            return {
+              ...s,
+              verificationStatus: verificationStatus,
+              visibilityStatus: visibilityStatus
+            };
+          }
+          return s;
+        });
+        setSellers(updatedData);
       } else {
         toast.error('Failed to load sellers');
       }
@@ -446,6 +459,10 @@ export default function Sellers({ onLogout, onNavigate }: SellersProps) {
                       <td className="text-center" style={{ paddingLeft: '16px', paddingRight: '16px', paddingTop: '15px', paddingBottom: '15px' }}>
                         <div className="flex items-center justify-center gap-2">
                           <button
+                            onClick={() => {
+                              sessionStorage.setItem('edit_seller_data', JSON.stringify(row));
+                              onNavigate('edit-seller-' + row.id);
+                            }}
                             onMouseEnter={() => setHoveredAction(`${row.id}-edit`)}
                             onMouseLeave={() => setHoveredAction(null)}
                             className="w-8 h-8 flex items-center justify-center transition-all duration-300 active:scale-90"

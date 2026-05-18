@@ -13,6 +13,7 @@ import WalletTransactions from './pages/WalletTransactions';
 import PendingWalletDeposits from './pages/PendingWalletDeposits';
 import Sellers from './pages/Sellers';
 import AddSeller from './pages/AddSeller';
+import EditSeller from './pages/EditSeller';
 import SettlementOverview from './pages/SettlementOverview';
 import SellerWithdrawals from './pages/SellerWithdrawals';
 import Stores from './pages/Stores';
@@ -94,10 +95,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     if (currentPage === 'pending wallet deposits') return <PendingWalletDeposits onLogout={onLogout} />;
     if (currentPage === 'sellers') return <Sellers onLogout={onLogout} onNavigate={setCurrentPage} />;
     if (currentPage === 'add-seller') return <AddSeller onLogout={onLogout} onNavigate={setCurrentPage} />;
+    if (currentPage.startsWith('edit-seller-')) {
+      const sellerId = currentPage.split('edit-seller-')[1];
+      return <EditSeller onLogout={onLogout} onNavigate={setCurrentPage} sellerId={Number(sellerId)} />;
+    }
     if (currentPage === 'settlement-overview') return <SettlementOverview onLogout={onLogout} onNavigate={setCurrentPage} />;
     if (currentPage === 'seller-withdrawals' || currentPage === 'withdrawal-history') return <SellerWithdrawals onLogout={onLogout} onNavigate={setCurrentPage} currentPage={currentPage} />;
     if (currentPage === 'stores') return <Stores onLogout={onLogout} onNavigate={setCurrentPage} />;
-    if (currentPage === 'store-details') return <StoreDetails onLogout={onNavigate} />; // Fixed potential typo here too
+    if (currentPage === 'store-details') return <StoreDetails onLogout={onLogout} onNavigate={setCurrentPage} />;
     if (currentPage === 'products' || currentPage === 'newsletter') return <Products onLogout={onLogout} onNavigate={setCurrentPage} />;
     if (currentPage === 'pending-approval-products') return <PendingApprovalProducts onLogout={onLogout} onNavigate={setCurrentPage} />;
     if (currentPage === 'product-faqs') return <ProductFaqs onLogout={onLogout} onNavigate={setCurrentPage} />;
