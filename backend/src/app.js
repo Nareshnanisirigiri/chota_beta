@@ -7,14 +7,10 @@ const { errorHandler } = require("./middleware/error-handler");
 
 const app = express();
 
-const allowedOrigins = env.corsOrigin 
-  ? env.corsOrigin.split(',').map(o => o.trim()) 
-  : "http://localhost:3000";
-
 app.use(
   cors({
-    origin: allowedOrigins,
-    credentials: false,
+    origin: ["https://chotabeta.vercel.app", "http://localhost:3000"],
+    credentials: true,
   })
 );
 const path = require('path');
