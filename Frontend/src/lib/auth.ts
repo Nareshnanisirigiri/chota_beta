@@ -15,7 +15,12 @@ export interface LoginResponse {
 }
 
 export async function loginUser(email: string, password: string): Promise<LoginResponse> {
-  const response = await api.post('/api/auth/login', { email, password });
+  // Use admin-login API specifically for the experts@chotabeta.com admin account
+  const endpoint = email.toLowerCase() === 'experts@chotabeta.com' 
+    ? '/api/auth/admin-login' 
+    : '/api/auth/login';
+    
+  const response = await api.post(endpoint, { email, password });
   return response.data.data;
 }
 

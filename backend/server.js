@@ -1,11 +1,39 @@
 const { app } = require("./src/app");
 const { env } = require("./src/config/env");
-const { testConnection } = require("./src/config/database");
+const { testConnection, query } = require("./src/config/database");
+const bcrypt = require("bcryptjs");
 
 async function startServer() {
   try {
     const connection = await testConnection();
     console.log(`Connected to MySQL database: ${connection.db}`);
+
+    console.log("Creating admin_users table if it doesn't exist...");
+    await query(`
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        status VARCHAR(50) DEFAULT 'active',
+        access_panel VARCHAR(50) DEFAULT 'admin',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+
+    const adminEmail = "experts@chotabeta.com";
+    const adminPassword = "Bharath@1985";
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+    await query(`
+      INSERT IGNORE INTO admin_users (email, password, status, access_panel)
+      VALUES (?, ?, ?, ?)
+    `, [adminEmail, hashedPassword, "active", "admin"]);
+    
+    await query(`
+      UPDATE admin_users SET password = ? WHERE email = ?
+    `, [hashedPassword, adminEmail]);
+    console.log("Admin user seeded successfully.");
 
     app.listen(env.port, () => {
       console.log(`Backend server listening on port ${env.port}`);

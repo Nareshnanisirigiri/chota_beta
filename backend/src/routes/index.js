@@ -12,6 +12,7 @@ const { sellerRouter } = require("./seller.routes");
 const { storeRouter } = require("./store.routes");
 const { productRouter } = require("./product.routes");
 const { productFaqRouter } = require("./product-faq.routes");
+const { taxRouter } = require("./tax.routes");
 
 const apiRouter = express.Router();
 
@@ -27,6 +28,7 @@ apiRouter.use("/sellers", sellerRouter);
 apiRouter.use("/stores", storeRouter);
 apiRouter.use("/products", productRouter);
 apiRouter.use("/product-faqs", productFaqRouter);
+apiRouter.use("/tax", taxRouter);
 
 module.exports = {
   apiRouter,
