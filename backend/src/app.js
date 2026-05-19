@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
+
 const { env } = require("./config/env");
 const { apiRouter } = require("./routes");
 const { notFoundHandler } = require("./middleware/not-found");
@@ -7,20 +9,34 @@ const { errorHandler } = require("./middleware/error-handler");
 
 const app = express();
 
+const allowedOrigins = [
+  "https://chotabeta.vercel.app",
+  "https://chotabeta.vercel.app/",
+  "http://localhost:3000",
+];
+
 app.use(
   cors({
-    origin: ["https://chotabeta.vercel.app", "http://localhost:3000"],
+    origin: function (origin, callback) {
+      // allow requests with no origin (mobile apps/postman)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
-const path = require('path');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static uploads
-app.use('/Uploads', express.static(path.join(__dirname, '../../uploads')));
-app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
+// Static uploads
+app.use("/Uploads", express.static(path.join(__dirname, "../../uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "../../uploads")));
 
 app.get("/health", (_req, res) => {
   res.json({
@@ -30,6 +46,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api", apiRouter);
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 
