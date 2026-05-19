@@ -13,9 +13,9 @@ function generateSlug(title) {
 
 const getBrands = async (req, res) => {
     try {
-        const [schema] = await pool.query('DESCRIBE chota_beta.brands');
+        const [schema] = await pool.query('DESCRIBE brands');
         console.log('BRANDS TABLE SCHEMA:', schema.map(c => c.Field));
-        const [rows] = await pool.query(`SELECT * FROM chota_beta.brands ORDER BY id DESC`);
+        const [rows] = await pool.query(`SELECT * FROM brands ORDER BY id DESC`);
         res.json({ success: true, data: rows });
     } catch (error) {
         console.error(error);
@@ -37,7 +37,7 @@ const createBrand = async (req, res) => {
         const sId = scope_id ? parseInt(scope_id) : null;
 
         const query = `
-            INSERT INTO chota_beta.brands (uuid, slug, title, description, scope_type, scope_id, status, metadata, created_at, updated_at) 
+            INSERT INTO brands (uuid, slug, title, description, scope_type, scope_id, status, metadata, created_at, updated_at) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         `;
 
@@ -64,7 +64,7 @@ const updateBrand = async (req, res) => {
         const { id } = req.params;
         const { brandName, description, scope_type, scope_id, status } = req.body;
         
-        const [existing] = await pool.query('SELECT metadata FROM chota_beta.brands WHERE id = ?', [id]);
+        const [existing] = await pool.query('SELECT metadata FROM brands WHERE id = ?', [id]);
         if (existing.length === 0) {
             return res.status(404).json({ success: false, message: 'Brand not found' });
         }
@@ -88,7 +88,7 @@ const updateBrand = async (req, res) => {
 
         console.log('UPDATING BRAND:', { id, brandName, status, metadata: metadataString });
 
-        let query = `UPDATE chota_beta.brands SET title = ?, slug = ?, description = ?, scope_type = ?, scope_id = ?, status = ?, metadata = ?, updated_at = NOW() WHERE id = ?`;
+        let query = `UPDATE brands SET title = ?, slug = ?, description = ?, scope_type = ?, scope_id = ?, status = ?, metadata = ?, updated_at = NOW() WHERE id = ?`;
         const params = [
             brandName || '', 
             slug,
@@ -112,7 +112,7 @@ const updateBrand = async (req, res) => {
 const deleteBrand = async (req, res) => {
     try {
         const { id } = req.params;
-        await pool.query('DELETE FROM chota_beta.brands WHERE id = ?', [id]);
+        await pool.query('DELETE FROM brands WHERE id = ?', [id]);
         res.json({ success: true, message: 'Brand deleted successfully' });
     } catch (error) {
         console.error(error);

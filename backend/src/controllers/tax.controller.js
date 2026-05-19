@@ -5,7 +5,7 @@ const { pool } = require('../config/database');
 const getTaxRates = async (req, res) => {
     try {
         const [rows] = await pool.query(
-            'SELECT * FROM chota_beta.tax_rates ORDER BY id ASC'
+            'SELECT * FROM tax_rates ORDER BY id ASC'
         );
         res.json({ success: true, data: rows });
     } catch (error) {
@@ -25,7 +25,7 @@ const createTaxRate = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Rate must be a valid number' });
         }
         await pool.query(
-            'INSERT INTO chota_beta.tax_rates (title, rate, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
+            'INSERT INTO tax_rates (title, rate, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
             [title.trim(), numRate]
         );
         res.status(201).json({ success: true, message: 'Tax rate created successfully' });
@@ -46,12 +46,12 @@ const updateTaxRate = async (req, res) => {
         if (isNaN(numRate)) {
             return res.status(400).json({ success: false, message: 'Rate must be a valid number' });
         }
-        const [existing] = await pool.query('SELECT id FROM chota_beta.tax_rates WHERE id = ?', [id]);
+        const [existing] = await pool.query('SELECT id FROM tax_rates WHERE id = ?', [id]);
         if (existing.length === 0) {
             return res.status(404).json({ success: false, message: 'Tax rate not found' });
         }
         await pool.query(
-            'UPDATE chota_beta.tax_rates SET title = ?, rate = ?, updated_at = NOW() WHERE id = ?',
+            'UPDATE tax_rates SET title = ?, rate = ?, updated_at = NOW() WHERE id = ?',
             [title.trim(), numRate, id]
         );
         res.json({ success: true, message: 'Tax rate updated successfully' });
@@ -64,11 +64,11 @@ const updateTaxRate = async (req, res) => {
 const deleteTaxRate = async (req, res) => {
     try {
         const { id } = req.params;
-        const [existing] = await pool.query('SELECT id FROM chota_beta.tax_rates WHERE id = ?', [id]);
+        const [existing] = await pool.query('SELECT id FROM tax_rates WHERE id = ?', [id]);
         if (existing.length === 0) {
             return res.status(404).json({ success: false, message: 'Tax rate not found' });
         }
-        await pool.query('DELETE FROM chota_beta.tax_rates WHERE id = ?', [id]);
+        await pool.query('DELETE FROM tax_rates WHERE id = ?', [id]);
         res.json({ success: true, message: 'Tax rate deleted successfully' });
     } catch (error) {
         console.error('deleteTaxRate error:', error);
@@ -81,7 +81,7 @@ const deleteTaxRate = async (req, res) => {
 const getTaxClasses = async (req, res) => {
     try {
         const [rows] = await pool.query(
-            'SELECT * FROM chota_beta.tax_classes WHERE deleted_at IS NULL ORDER BY id ASC'
+            'SELECT * FROM tax_classes WHERE deleted_at IS NULL ORDER BY id ASC'
         );
         res.json({ success: true, data: rows });
     } catch (error) {
@@ -97,7 +97,7 @@ const createTaxClass = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Title is required' });
         }
         await pool.query(
-            'INSERT INTO chota_beta.tax_classes (title, created_at, updated_at) VALUES (?, NOW(), NOW())',
+            'INSERT INTO tax_classes (title, created_at, updated_at) VALUES (?, NOW(), NOW())',
             [title.trim()]
         );
         res.status(201).json({ success: true, message: 'Tax class created successfully' });
@@ -115,13 +115,13 @@ const updateTaxClass = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Title is required' });
         }
         const [existing] = await pool.query(
-            'SELECT id FROM chota_beta.tax_classes WHERE id = ? AND deleted_at IS NULL', [id]
+            'SELECT id FROM tax_classes WHERE id = ? AND deleted_at IS NULL', [id]
         );
         if (existing.length === 0) {
             return res.status(404).json({ success: false, message: 'Tax class not found' });
         }
         await pool.query(
-            'UPDATE chota_beta.tax_classes SET title = ?, updated_at = NOW() WHERE id = ?',
+            'UPDATE tax_classes SET title = ?, updated_at = NOW() WHERE id = ?',
             [title.trim(), id]
         );
         res.json({ success: true, message: 'Tax class updated successfully' });
@@ -135,14 +135,14 @@ const deleteTaxClass = async (req, res) => {
     try {
         const { id } = req.params;
         const [existing] = await pool.query(
-            'SELECT id FROM chota_beta.tax_classes WHERE id = ? AND deleted_at IS NULL', [id]
+            'SELECT id FROM tax_classes WHERE id = ? AND deleted_at IS NULL', [id]
         );
         if (existing.length === 0) {
             return res.status(404).json({ success: false, message: 'Tax class not found' });
         }
         // Soft delete
         await pool.query(
-            'UPDATE chota_beta.tax_classes SET deleted_at = NOW() WHERE id = ?', [id]
+            'UPDATE tax_classes SET deleted_at = NOW() WHERE id = ?', [id]
         );
         res.json({ success: true, message: 'Tax class deleted successfully' });
     } catch (error) {

@@ -13,6 +13,8 @@ const allowedOrigins = [
   "https://chotabeta.vercel.app",
   "https://chotabeta.vercel.app/",
   "http://localhost:3000",
+  "https://chotabeta-superadmin-panel.vercel.app/",
+  "https://chotabeta-superadmin-panel.vercel.app"
 ];
 
 app.use(

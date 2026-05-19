@@ -13,7 +13,7 @@ function generateSlug(title) {
 
 const getCategories = async (req, res) => {
     try {
-        const [rows] = await pool.query(`SELECT * FROM chota_beta.categories ORDER BY id DESC`);
+        const [rows] = await pool.query(`SELECT * FROM categories ORDER BY id DESC`);
         res.json({ success: true, data: rows });
     } catch (error) {
         console.error(error);
@@ -37,7 +37,7 @@ const createCategory = async (req, res) => {
         const slug = generateSlug(title || 'category');
 
         const query = `
-            INSERT INTO chota_beta.categories (uuid, parent_id, title, slug, description, status, requires_approval, commission, metadata, created_at, updated_at) 
+            INSERT INTO categories (uuid, parent_id, title, slug, description, status, requires_approval, commission, metadata, created_at, updated_at) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         `;
 
@@ -60,7 +60,7 @@ const updateCategory = async (req, res) => {
         const { id } = req.params;
         const { title, description, parent_id, commission, status, requires_approval, backgroundType, backgroundColor, fontColor } = req.body;
         
-        const [existing] = await pool.query('SELECT metadata FROM chota_beta.categories WHERE id = ?', [id]);
+        const [existing] = await pool.query('SELECT metadata FROM categories WHERE id = ?', [id]);
         if (existing.length === 0) {
             return res.status(404).json({ success: false, message: 'Category not found' });
         }
@@ -94,7 +94,7 @@ const updateCategory = async (req, res) => {
         const reqApp = requires_approval === '1' || requires_approval === 'true' ? 1 : 0;
 
         const query = `
-            UPDATE chota_beta.categories 
+            UPDATE categories 
             SET parent_id = ?, title = ?, slug = ?, description = ?, status = ?, requires_approval = ?, commission = ?, metadata = ?, updated_at = NOW() 
             WHERE id = ?
         `;
@@ -111,7 +111,7 @@ const updateCategory = async (req, res) => {
 const deleteCategory = async (req, res) => {
     try {
         const { id } = req.params;
-        await pool.query('DELETE FROM chota_beta.categories WHERE id = ?', [id]);
+        await pool.query('DELETE FROM categories WHERE id = ?', [id]);
         res.json({ success: true, message: 'Category deleted successfully' });
     } catch (error) {
         console.error(error);

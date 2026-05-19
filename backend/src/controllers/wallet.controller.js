@@ -4,7 +4,7 @@ const { pool } = require('../config/database');
 const ensureTableExists = async () => {
     try {
         await pool.query(`
-            CREATE TABLE IF NOT EXISTS chota_beta.wallet_transactions (
+            CREATE TABLE IF NOT EXISTS wallet_transactions (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 wallet_id INT NOT NULL,
                 user_id INT NOT NULL,
@@ -43,8 +43,8 @@ const getWalletTransactions = async (req, res) => {
                 wt.status,
                 wt.payment_method,
                 wt.created_at
-            FROM chota_beta.wallet_transactions wt
-            LEFT JOIN chota_beta.users u ON wt.user_id = u.id
+            FROM wallet_transactions wt
+            LEFT JOIN users u ON wt.user_id = u.id
             ORDER BY wt.id DESC
         `;
         
@@ -79,13 +79,13 @@ const createWalletTransaction = async (req, res) => {
         }
 
         // 1. Fetch user_id matching customer name
-        let [userRows] = await pool.query('SELECT id FROM chota_beta.users WHERE name = ? LIMIT 1', [customer]);
+        let [userRows] = await pool.query('SELECT id FROM users WHERE name = ? LIMIT 1', [customer]);
         let userId = null;
         if (userRows.length > 0) {
             userId = userRows[0].id;
         } else {
             // Find a fallback default user in the system
-            const [firstUser] = await pool.query('SELECT id FROM chota_beta.users LIMIT 1');
+            const [firstUser] = await pool.query('SELECT id FROM users LIMIT 1');
             if (firstUser.length > 0) {
                 userId = firstUser[0].id;
             } else {
@@ -95,18 +95,18 @@ const createWalletTransaction = async (req, res) => {
 
         // 2. Fetch or create a wallet for this user to ensure referential integrity
         let walletId = null;
-        const [walletRows] = await pool.query('SELECT id FROM chota_beta.wallets WHERE user_id = ? LIMIT 1', [userId]);
+        const [walletRows] = await pool.query('SELECT id FROM wallets WHERE user_id = ? LIMIT 1', [userId]);
         if (walletRows.length > 0) {
             walletId = walletRows[0].id;
         } else {
             try {
                 const [newWallet] = await pool.query(
-                    'INSERT INTO chota_beta.wallets (user_id, balance, created_at, updated_at) VALUES (?, 0, NOW(), NOW())',
+                    'INSERT INTO wallets (user_id, balance, created_at, updated_at) VALUES (?, 0, NOW(), NOW())',
                     [userId]
                 );
                 walletId = newWallet.insertId;
             } catch (e) {
-                const [firstWallet] = await pool.query('SELECT id FROM chota_beta.wallets LIMIT 1');
+                const [firstWallet] = await pool.query('SELECT id FROM wallets LIMIT 1');
                 if (firstWallet.length > 0) {
                     walletId = firstWallet[0].id;
                 } else {
@@ -120,7 +120,7 @@ const createWalletTransaction = async (req, res) => {
         const safeStatus = (status || 'completed').toLowerCase();
 
         const insertQuery = `
-            INSERT INTO chota_beta.wallet_transactions 
+            INSERT INTO wallet_transactions 
             (wallet_id, user_id, transaction_type, payment_method, amount, currency_code, status, transaction_reference, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, 'USD', ?, ?, NOW(), NOW())
         `;
@@ -157,12 +157,12 @@ const updateWalletTransaction = async (req, res) => {
         }
 
         // 1. Fetch user_id matching customer name
-        let [userRows] = await pool.query('SELECT id FROM chota_beta.users WHERE name = ? LIMIT 1', [customer]);
+        let [userRows] = await pool.query('SELECT id FROM users WHERE name = ? LIMIT 1', [customer]);
         let userId = null;
         if (userRows.length > 0) {
             userId = userRows[0].id;
         } else {
-            const [firstUser] = await pool.query('SELECT id FROM chota_beta.users LIMIT 1');
+            const [firstUser] = await pool.query('SELECT id FROM users LIMIT 1');
             if (firstUser.length > 0) {
                 userId = firstUser[0].id;
             } else {
@@ -172,18 +172,18 @@ const updateWalletTransaction = async (req, res) => {
 
         // 2. Fetch or create a wallet for this user
         let walletId = null;
-        const [walletRows] = await pool.query('SELECT id FROM chota_beta.wallets WHERE user_id = ? LIMIT 1', [userId]);
+        const [walletRows] = await pool.query('SELECT id FROM wallets WHERE user_id = ? LIMIT 1', [userId]);
         if (walletRows.length > 0) {
             walletId = walletRows[0].id;
         } else {
             try {
                 const [newWallet] = await pool.query(
-                    'INSERT INTO chota_beta.wallets (user_id, balance, created_at, updated_at) VALUES (?, 0, NOW(), NOW())',
+                    'INSERT INTO wallets (user_id, balance, created_at, updated_at) VALUES (?, 0, NOW(), NOW())',
                     [userId]
                 );
                 walletId = newWallet.insertId;
             } catch (e) {
-                const [firstWallet] = await pool.query('SELECT id FROM chota_beta.wallets LIMIT 1');
+                const [firstWallet] = await pool.query('SELECT id FROM wallets LIMIT 1');
                 if (firstWallet.length > 0) {
                     walletId = firstWallet[0].id;
                 } else {
@@ -197,7 +197,7 @@ const updateWalletTransaction = async (req, res) => {
         const safeStatus = (status || 'completed').toLowerCase();
 
         const updateQuery = `
-            UPDATE chota_beta.wallet_transactions 
+            UPDATE wallet_transactions 
             SET wallet_id = ?, user_id = ?, transaction_type = ?, payment_method = ?, amount = ?, status = ?, transaction_reference = ?, updated_at = NOW()
             WHERE id = ?
         `;
@@ -229,7 +229,7 @@ const deleteWalletTransaction = async (req, res) => {
         await ensureTableExists();
         const { id } = req.params;
 
-        const [result] = await pool.query('DELETE FROM chota_beta.wallet_transactions WHERE id = ?', [id]);
+        const [result] = await pool.query('DELETE FROM wallet_transactions WHERE id = ?', [id]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Wallet transaction not found' });
