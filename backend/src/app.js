@@ -7,9 +7,13 @@ const { errorHandler } = require("./middleware/error-handler");
 
 const app = express();
 
+const allowedOrigins = env.corsOrigin 
+  ? env.corsOrigin.split(',').map(o => o.trim()) 
+  : "http://localhost:3000";
+
 app.use(
   cors({
-    origin: env.corsOrigin,
+    origin: allowedOrigins,
     credentials: false,
   })
 );
