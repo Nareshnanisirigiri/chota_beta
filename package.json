@@ -1,0 +1,9 @@
+{
+  "name": "chota-beta-root",
+  "version": "1.0.0",
+  "description": "Root wrapper for Chota Beta backend",
+  "scripts": {
+    "postinstall": "cd backend && npm install",
+    "start": "node backend/server.js"
+  }
+}
