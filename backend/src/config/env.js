@@ -24,24 +24,41 @@ function parseDatabaseUrl(connectionString) {
   }
 }
 
-const parsedDatabaseUrl = parseDatabaseUrl(
-  process.env.DATABASE_URL || process.env.MYSQL_URL
+const dbSource = process.env.DB_SOURCE || (process.env.DATABASE_URL || process.env.RAILWAY_DATABASE_URL ? "railway" : "local");
+
+const parsedRailwayUrl = parseDatabaseUrl(
+  process.env.RAILWAY_DATABASE_URL || process.env.DATABASE_URL || process.env.MYSQL_URL
 );
+
+let dbHost, dbPort, dbUser, dbPassword, dbName;
+
+if (dbSource === "railway") {
+  dbHost = process.env.DB_HOST || parsedRailwayUrl?.dbHost || "ballast.proxy.rlwy.net";
+  dbPort = Number(process.env.DB_PORT || parsedRailwayUrl?.dbPort || 22345);
+  dbUser = process.env.DB_USER || parsedRailwayUrl?.dbUser || "root";
+  dbPassword = process.env.DB_PASSWORD || parsedRailwayUrl?.dbPassword || "qgiysXerdQpUdJDzzFNygVDODmjXWwre";
+  dbName = process.env.DB_NAME || parsedRailwayUrl?.dbName || "railway";
+} else {
+  dbHost = process.env.DB_HOST || process.env.LOCAL_DB_HOST || "127.0.0.1";
+  dbPort = Number(process.env.DB_PORT || process.env.LOCAL_DB_PORT || 3306);
+  dbUser = process.env.DB_USER || process.env.LOCAL_DB_USER || "root";
+  dbPassword = process.env.DB_PASSWORD || process.env.LOCAL_DB_PASSWORD || "root";
+  dbName = process.env.DB_NAME || process.env.LOCAL_DB_NAME || "chota_beta";
+}
 
 const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT || 5000),
   corsOrigin: process.env.CORS_ORIGIN || "http://localhost:3000",
-  dbHost: process.env.DB_HOST || parsedDatabaseUrl?.dbHost || "127.0.0.1",
-  dbPort: Number(process.env.DB_PORT || parsedDatabaseUrl?.dbPort || 3306),
-  dbUser: process.env.DB_USER || parsedDatabaseUrl?.dbUser || "root",
-  dbPassword:
-    process.env.DB_PASSWORD || parsedDatabaseUrl?.dbPassword || "",
-  dbName: process.env.DB_NAME || parsedDatabaseUrl?.dbName || "chota_beta",
+  dbHost,
+  dbPort,
+  dbUser,
+  dbPassword,
+  dbName,
   dbSsl:
     process.env.DB_SSL === "true" ||
     process.env.DB_SSL === "1" ||
-    parsedDatabaseUrl?.dbSsl ||
+    parsedRailwayUrl?.dbSsl ||
     false,
   dbConnectionLimit: Number(process.env.DB_CONNECTION_LIMIT || 10),
   jwtSecret: process.env.JWT_SECRET || "change-me-mobile-secret",
