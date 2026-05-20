@@ -33,11 +33,20 @@ const parsedRailwayUrl = parseDatabaseUrl(
 let dbHost, dbPort, dbUser, dbPassword, dbName;
 
 if (dbSource === "railway") {
-  dbHost = process.env.DB_HOST || parsedRailwayUrl?.dbHost || "ballast.proxy.rlwy.net";
-  dbPort = Number(process.env.DB_PORT || parsedRailwayUrl?.dbPort || 22345);
-  dbUser = process.env.DB_USER || parsedRailwayUrl?.dbUser || "root";
-  dbPassword = process.env.DB_PASSWORD || parsedRailwayUrl?.dbPassword || "qgiysXerdQpUdJDzzFNygVDODmjXWwre";
-  dbName = process.env.DB_NAME || parsedRailwayUrl?.dbName || "railway";
+  dbHost = parsedRailwayUrl?.dbHost || "ballast.proxy.rlwy.net";
+  dbPort = Number(parsedRailwayUrl?.dbPort || 22345);
+  dbUser = parsedRailwayUrl?.dbUser || "root";
+  dbPassword = parsedRailwayUrl?.dbPassword || "qgiysXerdQpUdJDzzFNygVDODmjXWwre";
+  dbName = parsedRailwayUrl?.dbName || "railway";
+
+  // Only allow DB_HOST override if it's not a local address
+  if (process.env.DB_HOST && process.env.DB_HOST !== "127.0.0.1" && process.env.DB_HOST !== "localhost") {
+    dbHost = process.env.DB_HOST;
+    dbPort = Number(process.env.DB_PORT || dbPort);
+    dbUser = process.env.DB_USER || dbUser;
+    dbPassword = process.env.DB_PASSWORD || dbPassword;
+    dbName = process.env.DB_NAME || dbName;
+  }
 } else {
   dbHost = process.env.DB_HOST || process.env.LOCAL_DB_HOST || "127.0.0.1";
   dbPort = Number(process.env.DB_PORT || process.env.LOCAL_DB_PORT || 3306);
