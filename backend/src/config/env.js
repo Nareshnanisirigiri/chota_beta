@@ -24,7 +24,7 @@ function parseDatabaseUrl(connectionString) {
   }
 }
 
-const dbSource = process.env.DB_SOURCE || (process.env.DATABASE_URL || process.env.RAILWAY_DATABASE_URL ? "railway" : "local");
+const dbSource = process.env.DB_SOURCE || (process.env.RENDER === "true" || process.env.DATABASE_URL || process.env.RAILWAY_DATABASE_URL ? "railway" : "local");
 
 const parsedRailwayUrl = parseDatabaseUrl(
   process.env.RAILWAY_DATABASE_URL || process.env.DATABASE_URL || process.env.MYSQL_URL
