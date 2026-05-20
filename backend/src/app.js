@@ -13,6 +13,12 @@ const allowedOrigins = [
   "https://chotabeta.vercel.app",
   "https://chotabeta.vercel.app/",
   "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:3002",
+  "http://localhost:3003",
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
   "https://chotabeta-superadmin-panel.vercel.app/",
   "https://chotabeta-superadmin-panel.vercel.app"
 ];
@@ -33,18 +39,31 @@ app.use(
   })
 );
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Static uploads
-app.use("/Uploads", express.static(path.join(__dirname, "../../uploads")));
-app.use("/uploads", express.static(path.join(__dirname, "../../uploads")));
+app.use("/Uploads", express.static(path.join(__dirname, "../uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
-app.get("/health", (_req, res) => {
-  res.json({
-    success: true,
-    message: "Backend server is running",
-  });
+app.get("/health", async (_req, res) => {
+  try {
+    const { query } = require("./config/database");
+    const tables = await query("SHOW TABLES");
+    const fs = require("fs");
+    fs.writeFileSync(path.join(__dirname, "health_tables.json"), JSON.stringify(tables, null, 2));
+    res.json({
+      success: true,
+      message: "Backend server is running",
+      tablesCount: tables.length
+    });
+  } catch (err) {
+    res.json({
+      success: true,
+      message: "Backend server is running but database query failed",
+      error: err.message
+    });
+  }
 });
 
 app.use("/api", apiRouter);

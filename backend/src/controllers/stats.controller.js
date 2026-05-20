@@ -6,6 +6,8 @@ const getStats = asyncHandler(async (req, res) => {
   const [totalSellers] = await query("SELECT COUNT(*) as count FROM sellers");
   const [totalProducts] = await query("SELECT COUNT(*) as count FROM products");
   const [totalRevenue] = await query("SELECT SUM(total_payable) as total FROM orders WHERE status = 'DELIVERED'");
+  const [totalDeliveryBoys] = await query("SELECT COUNT(*) as count FROM delivery_boys");
+  const [newUsers] = await query("SELECT COUNT(*) as count FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
 
   res.json({
     success: true,
@@ -13,7 +15,9 @@ const getStats = asyncHandler(async (req, res) => {
       ordersCount: totalOrders.count,
       sellersCount: totalSellers.count,
       productsCount: totalProducts.count,
-      revenue: totalRevenue.total || 0
+      revenue: totalRevenue.total || 0,
+      deliveryBoysCount: totalDeliveryBoys.count,
+      newUsersCount: newUsers.count
     }
   });
 });

@@ -13,6 +13,18 @@ const { storeRouter } = require("./store.routes");
 const { productRouter } = require("./product.routes");
 const { productFaqRouter } = require("./product-faq.routes");
 const { taxRouter } = require("./tax.routes");
+const { deliveryBoyRouter } = require("./delivery-boy.routes");
+const { bannerRouter } = require("./banner.routes");
+const { featuredSectionRouter } = require("./featured-section.routes");
+const { promoRouter } = require("./promo.routes");
+const { faqRouter } = require("./faq.routes");
+const { deliveryZoneRouter } = require("./delivery-zone.routes");
+const { appNotificationRouter } = require("./app-notification.routes");
+const { roleRouter } = require("./role.routes");
+const { adminUserRouter } = require("./admin-user.routes");
+const { settingRouter } = require("./setting.routes");
+const { systemUpdateRouter } = require("./system-update.routes");
+const { subscriptionRouter } = require("./subscription.routes");
 
 const apiRouter = express.Router();
 
@@ -29,6 +41,18 @@ apiRouter.use("/stores", storeRouter);
 apiRouter.use("/products", productRouter);
 apiRouter.use("/product-faqs", productFaqRouter);
 apiRouter.use("/tax", taxRouter);
+apiRouter.use("/delivery-boys", deliveryBoyRouter);
+apiRouter.use("/banners", bannerRouter);
+apiRouter.use("/featured-sections", featuredSectionRouter);
+apiRouter.use("/promos", promoRouter);
+apiRouter.use("/faqs", faqRouter);
+apiRouter.use("/delivery-zones", deliveryZoneRouter);
+apiRouter.use("/app-notifications", appNotificationRouter);
+apiRouter.use("/roles", roleRouter);
+apiRouter.use("/admin-users", adminUserRouter);
+apiRouter.use("/settings", settingRouter);
+apiRouter.use("/system-updates", systemUpdateRouter);
+apiRouter.use("/subscriptions", subscriptionRouter);
 
 module.exports = {
   apiRouter,

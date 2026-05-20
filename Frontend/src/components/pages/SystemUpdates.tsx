@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   Package,
   Search,
@@ -9,9 +10,13 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  Loader2,
+  FileText
 } from 'lucide-react';
 import Navbar from '../Navbar';
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://chotabeta-backend.onrender.com');
 
 interface SystemUpdatesProps {
   onLogout: () => void;
@@ -41,6 +46,50 @@ const TableColumnHeader = ({ label }: { label: string }) => (
 );
 
 export default function SystemUpdates({ onLogout, onNavigate }: SystemUpdatesProps) {
+  const [updates, setUpdates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+
+  const fetchUpdates = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${BASE_URL}/api/system-updates`);
+      if (response.data.success) {
+        setUpdates(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching system updates:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUpdates();
+  }, []);
+
+  const filteredUpdates = updates.filter(item => {
+    const term = search.toLowerCase();
+    return (
+      (item.id?.toString() || '').toLowerCase().includes(term) ||
+      (item.version || '').toLowerCase().includes(term) ||
+      (item.package_name || '').toLowerCase().includes(term) ||
+      (item.status || '').toLowerCase().includes(term) ||
+      (item.applied_by_email || '').toLowerCase().includes(term)
+    );
+  });
+
+  const pageCount = Math.ceil(filteredUpdates.length / entriesPerPage);
+  const displayedUpdates = filteredUpdates.slice(
+    currentPageIndex * entriesPerPage,
+    (currentPageIndex + 1) * entriesPerPage
+  );
+
+  const startEntry = filteredUpdates.length === 0 ? 0 : currentPageIndex * entriesPerPage + 1;
+  const endEntry = Math.min((currentPageIndex + 1) * entriesPerPage, filteredUpdates.length);
+
   return (
     <div style={{ backgroundColor: '#070b14', minHeight: '100vh', width: '100%', padding: '32px', boxSizing: 'border-box', position: 'relative' }}>
       <Navbar onLogout={onLogout} />
@@ -102,8 +151,11 @@ export default function SystemUpdates({ onLogout, onNavigate }: SystemUpdatesPro
           <div>
             <h3 style={{ color: 'white', fontSize: '14px', fontWeight: "400", margin: '0 0 4px 0' }}>Update History</h3>
           </div>
-          <button style={{ backgroundColor: 'transparent', border: '1px solid #007bff', color: '#007bff', padding: '8px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: "400", cursor: 'pointer' }}>
-            Refresh
+          <button 
+            onClick={fetchUpdates}
+            style={{ backgroundColor: 'transparent', border: '1px solid #007bff', color: '#007bff', padding: '8px 16px', borderRadius: '4px', fontSize: '12px', fontWeight: "400", cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
         </div>
 
@@ -113,6 +165,11 @@ export default function SystemUpdates({ onLogout, onNavigate }: SystemUpdatesPro
               <div style={{ position: 'relative' }}>
                 <input
                   placeholder="Search..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setCurrentPageIndex(0);
+                  }}
                   style={{
                     backgroundColor: '#0c111d',
                     border: '1px solid #2d3748',
@@ -127,8 +184,18 @@ export default function SystemUpdates({ onLogout, onNavigate }: SystemUpdatesPro
                 <Search size={14} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'white', fontSize: '13px' }}>
-                <select style={{ backgroundColor: '#0c111d', border: '1px solid #2d3748', borderRadius: '4px', padding: '8px', color: 'white', fontSize: '13px' }}>
-                  <option>10</option>
+                <select 
+                  value={entriesPerPage} 
+                  onChange={(e) => {
+                    setEntriesPerPage(Number(e.target.value));
+                    setCurrentPageIndex(0);
+                  }}
+                  style={{ backgroundColor: '#0c111d', border: '1px solid #2d3748', borderRadius: '4px', padding: '8px', color: 'white', fontSize: '13px' }}
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
                 </select>
                 <span>entries per page</span>
               </div>
@@ -165,25 +232,111 @@ export default function SystemUpdates({ onLogout, onNavigate }: SystemUpdatesPro
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td colSpan={7} style={{ padding: '40px', textAlign: 'center' }}>
-                    <div style={{ color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                      <Database size={24} />
-                      <span style={{ fontSize: '13px' }}>No data available.</span>
-                    </div>
-                  </td>
-                </tr>
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '40px', textAlign: 'center' }}>
+                      <div style={{ color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                        <Loader2 className="animate-spin" size={24} />
+                        <span style={{ fontSize: '13px' }}>Loading system updates...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : displayedUpdates.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '40px', textAlign: 'center' }}>
+                      <div style={{ color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                        <Database size={24} />
+                        <span style={{ fontSize: '13px' }}>No data available.</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  displayedUpdates.map((item) => (
+                    <tr key={item.id} style={{ borderBottom: '1px solid #2d3748' }}>
+                      <td style={{ padding: '12px 16px', color: '#e2e8f0', fontSize: '13px' }}>{item.id}</td>
+                      <td style={{ padding: '12px 16px', color: 'white', fontSize: '13px', fontWeight: '500' }}>{item.version}</td>
+                      <td style={{ padding: '12px 16px', color: '#94a3b8', fontSize: '13px' }}>{item.package_name}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '13px' }}>
+                        <span style={{
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: '500',
+                          textTransform: 'uppercase',
+                          backgroundColor: item.status === 'success' || item.status === 'applied' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                          color: item.status === 'success' || item.status === 'applied' ? '#10b981' : '#ef4444',
+                          border: item.status === 'success' || item.status === 'applied' ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
+                        }}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px', color: '#e2e8f0', fontSize: '13px' }}>{item.applied_by_email || 'System'}</td>
+                      <td style={{ padding: '12px 16px', color: '#94a3b8', fontSize: '13px' }}>
+                        {item.applied_at ? new Date(item.applied_at).toLocaleString() : new Date(item.created_at).toLocaleString()}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: '13px' }}>
+                        <button 
+                          onClick={() => {
+                            if (item.log || item.notes) {
+                              alert(`Notes:\n${item.notes || 'No notes'}\n\nLog:\n${item.log || 'No logs'}`);
+                            } else {
+                              alert('No logs or notes available for this update.');
+                            }
+                          }}
+                          style={{
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            color: '#007bff',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: 0
+                          }}
+                        >
+                          <FileText size={14} /> View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
-            <span style={{ color: '#64748b', fontSize: '12px' }}>Showing 0 to 0 of 0 entries</span>
+            <span style={{ color: '#64748b', fontSize: '12px' }}>
+              Showing {startEntry} to {endEntry} of {filteredUpdates.length} entries
+            </span>
             <div style={{ display: 'flex', gap: '4px' }}>
-              <button style={{ padding: '8px', background: 'transparent', border: 'none', color: '#2d3748', cursor: 'not-allowed' }}><ChevronsLeft size={16} /></button>
-              <button style={{ padding: '8px', background: 'transparent', border: 'none', color: '#2d3748', cursor: 'not-allowed' }}><ChevronLeft size={16} /></button>
-              <button style={{ padding: '8px', background: 'transparent', border: 'none', color: '#2d3748', cursor: 'not-allowed' }}><ChevronRight size={16} /></button>
-              <button style={{ padding: '8px', background: 'transparent', border: 'none', color: '#2d3748', cursor: 'not-allowed' }}><ChevronsRight size={16} /></button>
+              <button 
+                onClick={() => setCurrentPageIndex(0)}
+                disabled={currentPageIndex === 0}
+                style={{ padding: '8px', background: 'transparent', border: 'none', color: currentPageIndex === 0 ? '#2d3748' : '#007bff', cursor: currentPageIndex === 0 ? 'not-allowed' : 'pointer' }}
+              >
+                <ChevronsLeft size={16} />
+              </button>
+              <button 
+                onClick={() => setCurrentPageIndex(prev => Math.max(0, prev - 1))}
+                disabled={currentPageIndex === 0}
+                style={{ padding: '8px', background: 'transparent', border: 'none', color: currentPageIndex === 0 ? '#2d3748' : '#007bff', cursor: currentPageIndex === 0 ? 'not-allowed' : 'pointer' }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button 
+                onClick={() => setCurrentPageIndex(prev => Math.min(pageCount - 1, prev + 1))}
+                disabled={currentPageIndex >= pageCount - 1}
+                style={{ padding: '8px', background: 'transparent', border: 'none', color: currentPageIndex >= pageCount - 1 ? '#2d3748' : '#007bff', cursor: currentPageIndex >= pageCount - 1 ? 'not-allowed' : 'pointer' }}
+              >
+                <ChevronRight size={16} />
+              </button>
+              <button 
+                onClick={() => setCurrentPageIndex(pageCount - 1)}
+                disabled={currentPageIndex >= pageCount - 1}
+                style={{ padding: '8px', background: 'transparent', border: 'none', color: currentPageIndex >= pageCount - 1 ? '#2d3748' : '#007bff', cursor: currentPageIndex >= pageCount - 1 ? 'not-allowed' : 'pointer' }}
+              >
+                <ChevronsRight size={16} />
+              </button>
             </div>
           </div>
         </div>

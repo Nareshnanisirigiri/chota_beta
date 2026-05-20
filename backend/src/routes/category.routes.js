@@ -11,6 +11,8 @@ const uploadFields = upload.fields([
 ]);
 
 router.get('/', categoryController.getCategories);
+router.post('/save-home-order', categoryController.saveHomeCategoriesOrder);
+router.post('/bulk-upload', upload.single('file'), categoryController.bulkUploadCategories);
 router.post('/create', uploadFields, categoryController.createCategory);
 router.put('/:id', uploadFields, categoryController.updateCategory);
 router.delete('/:id', categoryController.deleteCategory);

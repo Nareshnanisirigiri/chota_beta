@@ -40,7 +40,9 @@ export default function SortCategories({ onLogout, onNavigate }: SortCategoriesP
       setCategories(data);
       
       if (data.length > 0) {
-        setSelectedCategories(data.slice(0, Math.min(10, data.length)));
+        const homeCategories = data.filter((c: any) => c.is_home_category === 1 || c.is_home_category === true || c.is_home_category === '1');
+        homeCategories.sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0));
+        setSelectedCategories(homeCategories.length > 0 ? homeCategories : data.slice(0, Math.min(10, data.length)));
       } else {
         const exactNames = [
           'Juice & Shakes', 'Fruits & Vegetables', 'Biryani & Rice', 'Handbags', 'Soups & Salads', 'Staters',
@@ -76,8 +78,16 @@ export default function SortCategories({ onLogout, onNavigate }: SortCategoriesP
     setSelectedCategories(selectedCategories.filter(c => c.id !== id));
   };
 
-  const handleSaveHomeCategories = () => {
-    toast.success('Home categories saved successfully');
+  const handleSaveHomeCategories = async () => {
+    try {
+      const categoryIds = selectedCategories.map(c => c.id);
+      await axios.post(`${BASE_URL}/api/category/save-home-order`, { categoryIds });
+      toast.success('Home categories order saved successfully');
+      fetchCategories();
+    } catch (error) {
+      console.error('Error saving home categories order:', error);
+      toast.error('Failed to save categories order');
+    }
   };
 
   // Drag and Drop Handlers

@@ -10,7 +10,8 @@ const getProducts = async (req, res) => {
                 c.title AS categoryName,
                 b.title AS brandName,
                 m.id AS mediaId,
-                m.file_name AS productImage
+                m.file_name AS productImage,
+                m.disk AS productDisk
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
             LEFT JOIN brands b ON p.brand_id = b.id
@@ -39,7 +40,9 @@ const getProducts = async (req, res) => {
 
             let image = 'https://via.placeholder.com/150?text=Product';
             if (item.mediaId && item.productImage) {
-                image = `https://superadmin.chotabeta.com/storage/${item.mediaId}/${item.productImage}`;
+                image = item.productDisk === 'local_uploads'
+                    ? `${req.protocol}://${req.get('host')}/uploads/products/${item.productImage}`
+                    : `https://superadmin.chotabeta.com/storage/${item.mediaId}/${item.productImage}`;
             } else if (item.image) {
                 image = item.image;
             } else if (item.thumbnail) {

@@ -60,7 +60,9 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     ordersCount: 21,
     sellersCount: 2,
     productsCount: 6,
-    revenue: 0
+    revenue: 0,
+    deliveryBoysCount: 0,
+    newUsersCount: 0
   });
 
   React.useEffect(() => {
@@ -135,7 +137,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
           {/* Success Illustration */}
           <div className="absolute right-0 top-0 bottom-0 w-[240px] pointer-events-none">
             <img
-              src="https://superadmin.chotabeta.com/assets/theme/img/dashboard.svg"
+              src="https://chotabeta.com/assets/theme/img/dashboard.svg"
               alt="Welcome Illustration"
               className="w-full h-full object-contain"
             />
@@ -197,7 +199,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
               </button>
             </div>
             <div className="flex items-center gap-3 mt-2">
-              <h3 className="text-3xl font-normal text-foreground tracking-tight">5</h3>
+              <h3 className="text-3xl font-normal text-foreground tracking-tight">{stats.newUsersCount}</h3>
               <div className="text-emerald-500 text-[12px] font-normal flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded">
                 100% <TrendingUp size={16} />
               </div>
@@ -244,7 +246,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
             <Bike className="text-foreground" size={20} />
           </div>
           <div className="flex flex-col">
-            <h4 className="text-[15px] font-normal text-foreground leading-tight">Delivery Boys</h4>
+            <h4 className="text-[15px] font-normal text-foreground leading-tight">{stats.deliveryBoysCount} Delivery Boys</h4>
             <p className="text-[12px] text-foreground/60">Active Status</p>
           </div>
         </div>

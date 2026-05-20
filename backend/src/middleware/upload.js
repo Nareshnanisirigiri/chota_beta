@@ -7,6 +7,10 @@ const storage = multer.diskStorage({
         let folder = 'categories';
         if (req.originalUrl.includes('/brands')) {
             folder = 'brands';
+        } else if (req.originalUrl.includes('/banners')) {
+            folder = 'banners';
+        } else if (req.originalUrl.includes('/sellers')) {
+            folder = 'sellers';
         }
         const dir = path.join(__dirname, '../../uploads', folder);
         if (!fs.existsSync(dir)) {

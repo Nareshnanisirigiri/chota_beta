@@ -7,9 +7,10 @@ const getCustomers = async (req, res) => {
         // Query to fetch users who are customers (usually access_panel = 0 or specific role)
         // For now, fetching all users from users table as per user request
         const [rows] = await pool.query(`
-            SELECT *
-            FROM users 
-            ORDER BY id DESC
+            SELECT u.*, COALESCE(w.balance, 0) as balance
+            FROM users u
+            LEFT JOIN wallets w ON u.id = w.user_id
+            ORDER BY u.id DESC
         `);
         console.log(`FETCHED ${rows.length} CUSTOMERS`);
         res.json({ success: true, data: rows });

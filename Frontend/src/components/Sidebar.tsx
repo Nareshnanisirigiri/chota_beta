@@ -24,6 +24,7 @@ import {
   ClipboardList,
   LayoutGrid,
   UserCog,
+  CreditCard,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -115,6 +116,16 @@ export default function Sidebar({ currentPage, onNavigate, onLogout }: SidebarPr
     { id: 'faqs', label: 'FAQs', icon: CircleHelp },
     { id: 'delivery-zones', label: 'Delivery Zones', icon: MapPin },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+    {
+      id: 'subscriptions',
+      label: 'Subscriptions',
+      icon: CreditCard,
+      submenu: [
+        { id: 'subscription-plans', label: 'Subscription Plans', icon: CircleDot },
+        { id: 'seller-subscriptions', label: 'Seller Subscriptions', icon: CircleDot },
+        { id: 'subscription-transactions', label: 'Subscription Transactions', icon: CircleDot },
+      ]
+    },
     {
       id: 'roles-permissions',
       label: 'Roles & Permissions',

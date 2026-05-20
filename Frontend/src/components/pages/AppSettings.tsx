@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Loader2 } from 'lucide-react';
 import Navbar from '../Navbar';
 
 interface AppSettingsProps {
@@ -6,14 +8,17 @@ interface AppSettingsProps {
   onNavigate?: (page: string) => void;
 }
 
-const FormField = ({ label, value, placeholder, required = false, type = "text" }: any) => (
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://chotabeta-backend.onrender.com');
+
+const FormField = ({ label, value, onChange, placeholder, required = false, type = "text" }: any) => (
   <div style={{ marginBottom: '20px' }}>
     <label style={{ display: 'block', color: 'white', fontSize: '13px', fontWeight: "400", marginBottom: '8px' }}>
       {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
     </label>
     <input 
       type={type} 
-      defaultValue={value}
+      value={value || ''}
+      onChange={onChange}
       placeholder={placeholder} 
       style={{ 
         width: '100%', 
@@ -31,6 +36,70 @@ const FormField = ({ label, value, placeholder, required = false, type = "text" 
 );
 
 export default function AppSettings({ onLogout, onNavigate }: AppSettingsProps) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [settings, setSettings] = useState({
+    customer_app_store_link: '',
+    customer_play_store_link: '',
+    customer_app_scheme: '',
+    seller_app_store_link: '',
+    seller_play_store_link: '',
+    seller_app_scheme: '',
+    app_domain_name: ''
+  });
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${BASE_URL}/api/settings`);
+      if (res.data.success && res.data.data) {
+        setSettings(prev => ({
+          ...prev,
+          ...res.data.data
+        }));
+      }
+    } catch (err) {
+      console.error("Error fetching app settings:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await axios.post(`${BASE_URL}/api/settings`, settings);
+      if (res.data.success) {
+        alert('App Settings saved successfully!');
+      }
+    } catch (err) {
+      console.error("Error saving app settings:", err);
+      alert('Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateSetting = (key: string, value: any) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8 font-sans selection:bg-blue-500/30 text-white min-h-screen flex items-center justify-center bg-[#070b14]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-blue-500 w-10 h-10" />
+          <p className="text-slate-400 font-medium">Loading app settings...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ backgroundColor: '#070b14', minHeight: '100vh', width: '100%', padding: '32px', boxSizing: 'border-box' }}>
       <Navbar onLogout={onLogout} />
@@ -60,30 +129,69 @@ export default function AppSettings({ onLogout, onNavigate }: AppSettingsProps) 
                   cursor: 'pointer'
                 }}
               >
-                General
+                App Details & Links
               </div>
             </div>
           </div>
 
           {/* Right Content Area */}
           <div style={{ flex: 1 }}>
+            {/* Customer App Settings */}
             <div style={{ backgroundColor: '#1a2233', border: '1px solid #2d3748', borderRadius: '8px', overflow: 'hidden', marginBottom: '24px' }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid #2d3748' }}>
-                <h3 style={{ color: 'white', fontSize: '14px', fontWeight: "400", margin: 0 }}>General</h3>
+                <h3 style={{ color: 'white', fontSize: '14px', fontWeight: "400", margin: 0 }}>Customer App Settings</h3>
               </div>
-              
               <div style={{ padding: '24px' }}>
-                <FormField label="App Store Link" required placeholder="Enter App Store link" />
-                <FormField label="Play Store Link" required placeholder="Enter Play Store link" />
-                <FormField label="App Scheme" required placeholder="Enter app scheme (e.g., myapp://)" />
-                <FormField label="App Domain Name" required placeholder="Enter app domain name" />
+                <FormField label="Customer App Store Link" required value={settings.customer_app_store_link} onChange={(e: any) => updateSetting('customer_app_store_link', e.target.value)} placeholder="Enter Customer App Store link" />
+                <FormField label="Customer Play Store Link" required value={settings.customer_play_store_link} onChange={(e: any) => updateSetting('customer_play_store_link', e.target.value)} placeholder="Enter Customer Play Store link" />
+                <FormField label="Customer App Scheme" required value={settings.customer_app_scheme} onChange={(e: any) => updateSetting('customer_app_scheme', e.target.value)} placeholder="Enter customer app scheme (e.g., chotabetacustomer://)" />
+              </div>
+            </div>
+
+            {/* Seller App Settings */}
+            <div style={{ backgroundColor: '#1a2233', border: '1px solid #2d3748', borderRadius: '8px', overflow: 'hidden', marginBottom: '24px' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #2d3748' }}>
+                <h3 style={{ color: 'white', fontSize: '14px', fontWeight: "400", margin: 0 }}>Seller App Settings</h3>
+              </div>
+              <div style={{ padding: '24px' }}>
+                <FormField label="Seller App Store Link" required value={settings.seller_app_store_link} onChange={(e: any) => updateSetting('seller_app_store_link', e.target.value)} placeholder="Enter Seller App Store link" />
+                <FormField label="Seller Play Store Link" required value={settings.seller_play_store_link} onChange={(e: any) => updateSetting('seller_play_store_link', e.target.value)} placeholder="Enter Seller Play Store link" />
+                <FormField label="Seller App Scheme" required value={settings.seller_app_scheme} onChange={(e: any) => updateSetting('seller_app_scheme', e.target.value)} placeholder="Enter seller app scheme (e.g., chotabetaseller://)" />
+              </div>
+            </div>
+
+            {/* Domain Settings */}
+            <div style={{ backgroundColor: '#1a2233', border: '1px solid #2d3748', borderRadius: '8px', overflow: 'hidden', marginBottom: '24px' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #2d3748' }}>
+                <h3 style={{ color: 'white', fontSize: '14px', fontWeight: "400", margin: 0 }}>Domain Settings</h3>
+              </div>
+              <div style={{ padding: '24px' }}>
+                <FormField label="App Domain Name" required value={settings.app_domain_name} onChange={(e: any) => updateSetting('app_domain_name', e.target.value)} placeholder="Enter app domain name" />
               </div>
             </div>
 
             {/* Global Submit Button */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button style={{ backgroundColor: '#007bff', color: 'white', border: 'none', padding: '12px 32px', borderRadius: '6px', fontSize: '14px', fontWeight: "400", cursor: 'pointer', transition: 'all 0.2s' }}>
-                Submit
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '64px' }}>
+              <button 
+                onClick={handleSave}
+                disabled={saving}
+                style={{ 
+                  backgroundColor: '#007bff', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '12px 32px', 
+                  borderRadius: '6px', 
+                  fontSize: '14px', 
+                  fontWeight: "600", 
+                  cursor: 'pointer', 
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                {saving && <Loader2 size={16} className="animate-spin" />}
+                {saving ? 'Saving...' : 'Submit'}
               </button>
             </div>
           </div>

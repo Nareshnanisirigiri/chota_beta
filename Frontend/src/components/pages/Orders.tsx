@@ -106,14 +106,17 @@ export default function Orders({ onLogout, onNavigate }: OrdersProps) {
   const filteredOrders = React.useMemo(() => {
     return ordersData.filter(order => {
       const matchesSearch = searchQuery === '' ||
-        (order.orderId || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (order.orderId || '').toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ((order as any).orderIdNumber || '').toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
         (order.customerName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (order.productName || '').toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesStatus = filterStatus === '' || order.status === filterStatus;
+      const matchesStatus = filterStatus === '' || 
+        (order.status || '').toLowerCase() === filterStatus.toLowerCase() ||
+        (order.status || '').toLowerCase() === filterStatus.toLowerCase().replace(/\s+/g, '_');
 
-      // Note: Backend might not return paymentType yet, assuming it exists or adding placeholders
-      const matchesPayment = filterPaymentType === '' || (order as any).paymentType === filterPaymentType;
+      const matchesPayment = filterPaymentType === '' || 
+        ((order as any).paymentMethod || '').toLowerCase() === filterPaymentType.toLowerCase();
 
       // Date Range logic (client side approximation)
       let matchesDate = true;
@@ -478,7 +481,11 @@ export default function Orders({ onLogout, onNavigate }: OrdersProps) {
                             src={`https://superadmin.chotabeta.com/storage/${(order as any).mediaId}/${order.productImage}`} 
                             alt={order.productName}
                             className="w-16 h-16 rounded-md object-cover border border-[#2d3748]"
-                            onError={(e) => { (e.target as any).src = 'https://via.placeholder.com/64'; }}
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement;
+                              target.onerror = null;
+                              target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="100%" height="100%" fill="%231e2736"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="%23a0aec0">Order</text></svg>';
+                            }}
                           />
                         ) : (
                           <div className="w-16 h-16 rounded-md bg-[#1e2736] flex items-center justify-center border border-[#2d3748]">

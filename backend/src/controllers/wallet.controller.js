@@ -26,6 +26,28 @@ const ensureTableExists = async () => {
     }
 };
 
+const syncWalletBalance = async (walletId) => {
+    try {
+        const [[depositRes]] = await pool.query(
+            "SELECT SUM(amount) as total FROM wallet_transactions WHERE wallet_id = ? AND status = 'completed' AND transaction_type IN ('deposit', 'refund')",
+            [walletId]
+        );
+        const [[withdrawalRes]] = await pool.query(
+            "SELECT SUM(amount) as total FROM wallet_transactions WHERE wallet_id = ? AND status = 'completed' AND transaction_type IN ('payment', 'adjustment', 'withdrawal')",
+            [walletId]
+        );
+
+        const totalDeposits = parseFloat(depositRes.total || 0);
+        const totalWithdrawals = parseFloat(withdrawalRes.total || 0);
+        const newBalance = totalDeposits - totalWithdrawals;
+
+        await pool.query("UPDATE wallets SET balance = ? WHERE id = ?", [newBalance, walletId]);
+        console.log(`Wallet ${walletId} balance synced: ${newBalance}`);
+    } catch (e) {
+        console.error('Error syncing wallet balance:', e);
+    }
+};
+
 const getWalletTransactions = async (req, res) => {
     try {
         await ensureTableExists();
@@ -135,6 +157,8 @@ const createWalletTransaction = async (req, res) => {
             transactionRef || null
         ]);
 
+        await syncWalletBalance(walletId);
+
         res.status(201).json({ 
             success: true, 
             message: 'Wallet transaction created successfully', 
@@ -217,6 +241,8 @@ const updateWalletTransaction = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Wallet transaction not found' });
         }
 
+        await syncWalletBalance(walletId);
+
         res.json({ success: true, message: 'Wallet transaction updated successfully' });
     } catch (error) {
         console.error('Error updating wallet transaction:', error);
@@ -229,11 +255,15 @@ const deleteWalletTransaction = async (req, res) => {
         await ensureTableExists();
         const { id } = req.params;
 
-        const [result] = await pool.query('DELETE FROM wallet_transactions WHERE id = ?', [id]);
-
-        if (result.affectedRows === 0) {
+        const [existing] = await pool.query('SELECT wallet_id FROM wallet_transactions WHERE id = ?', [id]);
+        if (existing.length === 0) {
             return res.status(404).json({ success: false, message: 'Wallet transaction not found' });
         }
+        const walletId = existing[0].wallet_id;
+
+        const [result] = await pool.query('DELETE FROM wallet_transactions WHERE id = ?', [id]);
+
+        await syncWalletBalance(walletId);
 
         res.json({ success: true, message: 'Wallet transaction deleted successfully' });
     } catch (error) {

@@ -13,10 +13,47 @@ function generateSlug(title) {
 
 const getBrands = async (req, res) => {
     try {
-        const [schema] = await pool.query('DESCRIBE brands');
-        console.log('BRANDS TABLE SCHEMA:', schema.map(c => c.Field));
         const [rows] = await pool.query(`SELECT * FROM brands ORDER BY id DESC`);
-        res.json({ success: true, data: rows });
+        
+        // Fetch all media files for Brand models to backfill images
+        const [mediaRows] = await pool.query(
+            "SELECT * FROM media WHERE model_type = ?",
+            ["App\\Models\\Brand"]
+        );
+
+        // Map media by model_id and collection_name
+        const mediaMap = {};
+        mediaRows.forEach(m => {
+            if (!mediaMap[m.model_id]) {
+                mediaMap[m.model_id] = {};
+            }
+            mediaMap[m.model_id][m.collection_name] = m;
+        });
+
+        // Inject media urls into brand metadata dynamically
+        const data = rows.map(b => {
+            let metadata = {};
+            try {
+                metadata = b.metadata ? (typeof b.metadata === 'string' ? JSON.parse(b.metadata) : b.metadata) : {};
+            } catch (e) {}
+
+            const brandMedia = mediaMap[b.id];
+            if (brandMedia) {
+                const m = brandMedia['brand'] || brandMedia['logo'] || brandMedia['image'];
+                if (m && !metadata.image) {
+                    metadata.image = m.disk === 'local_uploads'
+                        ? `${req.protocol}://${req.get('host')}/uploads/brands/${m.file_name}`
+                        : `https://superadmin.chotabeta.com/storage/${m.id}/${m.file_name}`;
+                }
+            }
+
+            return {
+                ...b,
+                metadata: JSON.stringify(metadata)
+            };
+        });
+
+        res.json({ success: true, data });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Failed to fetch brands: ' + error.message });
@@ -120,9 +157,97 @@ const deleteBrand = async (req, res) => {
     }
 };
 
+const downloadBrandsTemplate = async (req, res) => {
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=brands_template.csv');
+    res.send("title,description,status,scope_type,scope_id,category_title\nSample Brand,Description of Brand,active,GLOBAL,,");
+};
+
+const bulkUploadBrands = async (req, res) => {
+    const fs = require('fs');
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'Please upload a file' });
+        }
+
+        const fileContent = fs.readFileSync(req.file.path, 'utf8');
+        const lines = fileContent.split(/\r?\n/);
+        if (lines.length < 2) {
+            return res.status(400).json({ success: false, message: 'CSV file is empty or has no data rows' });
+        }
+
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const brandsToInsert = [];
+
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+            
+            // Basic CSV row parsing
+            const values = [];
+            let current = '';
+            let inQuotes = false;
+            for (let j = 0; j < line.length; j++) {
+                const MathChar = line[j];
+                if (MathChar === '"') {
+                    inQuotes = !inQuotes;
+                } else if (MathChar === ',' && !inQuotes) {
+                    values.push(current.trim());
+                    current = '';
+                } else {
+                    current += MathChar;
+                }
+            }
+            values.push(current.trim());
+
+            const row = {};
+            headers.forEach((header, idx) => {
+                row[header] = values[idx] || '';
+            });
+
+            if (!row.title && !row.brandname) continue;
+
+            brandsToInsert.push({
+                title: row.title || row.brandname,
+                description: row.description || '',
+                status: row.status || 'active',
+                scope_type: row.scope_type || 'GLOBAL',
+                scope_id: row.scope_id ? parseInt(row.scope_id) : null
+            });
+        }
+
+        for (const brand of brandsToInsert) {
+            const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+            const slug = brand.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+            const metadata = JSON.stringify({ image: null });
+
+            await pool.query(
+                `INSERT INTO brands 
+                 (uuid, slug, title, description, scope_type, scope_id, status, metadata, created_at, updated_at) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                [uuid, slug, brand.title, brand.description, brand.scope_type, brand.scope_id, brand.status, metadata]
+            );
+        }
+
+        try {
+            fs.unlinkSync(req.file.path);
+        } catch(e) {}
+
+        res.json({ success: true, message: `Successfully imported ${brandsToInsert.length} brands` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Failed to import brands: ' + error.message });
+    }
+};
+
 module.exports = {
     getBrands,
     createBrand,
     updateBrand,
-    deleteBrand
+    deleteBrand,
+    downloadBrandsTemplate,
+    bulkUploadBrands
 };

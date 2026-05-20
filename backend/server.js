@@ -8,6 +8,12 @@ async function startServer() {
     const connection = await testConnection();
     console.log(`Connected to MySQL database: ${connection.db}`);
 
+    const tables = await query("SHOW TABLES");
+    const fs = require("fs");
+    const path = require("path");
+    fs.writeFileSync(path.join(__dirname, "tables.json"), JSON.stringify(tables, null, 2));
+    console.log("DB Tables successfully written to tables.json!");
+
     console.log("Creating admin_users table if it doesn't exist...");
     await query(`
       CREATE TABLE IF NOT EXISTS admin_users (

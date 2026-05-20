@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   Bell,
   ChevronDown,
-  Upload
+  Upload,
+  Loader2
 } from 'lucide-react';
 import Navbar from '../Navbar';
 
@@ -11,14 +13,17 @@ interface NotificationSettingsProps {
   onNavigate?: (page: string) => void;
 }
 
-const FormField = ({ label, value, placeholder, required = false, type = "text" }: any) => (
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://chotabeta-backend.onrender.com');
+
+const FormField = ({ label, value, onChange, placeholder, required = false, type = "text" }: any) => (
   <div style={{ marginBottom: '20px' }}>
     <label style={{ display: 'block', color: 'white', fontSize: '13px', fontWeight: "400", marginBottom: '8px' }}>
       {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
     </label>
     <input 
       type={type} 
-      defaultValue={value}
+      value={value}
+      onChange={onChange}
       placeholder={placeholder} 
       style={{ 
         width: '100%', 
@@ -36,7 +41,64 @@ const FormField = ({ label, value, placeholder, required = false, type = "text" 
 );
 
 export default function NotificationSettings({ onLogout, onNavigate }: NotificationSettingsProps) {
-  const [activeTab, setActiveTab] = React.useState('General');
+  const [activeTab, setActiveTab] = useState('General');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [settings, setSettings] = useState({
+    notify_firebase_project_id: 'chota-beta-customer'
+  });
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${BASE_URL}/api/settings`);
+      if (res.data.success && res.data.data) {
+        setSettings(prev => ({
+          ...prev,
+          ...res.data.data
+        }));
+      }
+    } catch (err) {
+      console.error("Error fetching notification settings:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await axios.post(`${BASE_URL}/api/settings`, settings);
+      if (res.data.success) {
+        alert('Notification Settings saved successfully!');
+      }
+    } catch (err) {
+      console.error("Error saving notification settings:", err);
+      alert('Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateSetting = (key: string, value: any) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8 font-sans selection:bg-blue-500/30 text-white min-h-screen flex items-center justify-center bg-[#070b14]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-blue-500 w-10 h-10" />
+          <p className="text-slate-400 font-medium">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
 
   const jsonSample = `{
   "project_info": {
@@ -64,11 +126,11 @@ export default function NotificationSettings({ onLogout, onNavigate }: Notificat
 }`;
 
   return (
-    <div style={{ backgroundColor: '#070b14', minHeight: '100vh', width: '100%', padding: '32px', boxSizing: 'border-box' }}>
+    <div style={{ backgroundColor: '#070b14', minHeight: '100vh', width: '100%', padding: '32px', boxSizing: 'border-box' }} className="font-sans">
       <Navbar onLogout={onLogout} />
 
       <div style={{ marginTop: '32px' }}>
-        <h1 style={{ margin: '0 0 4px 0' }}>Notification Settings</h1>
+        <h1 style={{ margin: '0 0 4px 0', color: 'white', fontSize: '18px', fontWeight: "400" }}>Notification Settings</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', marginBottom: '32px' }}>
           <span style={{ color: '#007bff', cursor: 'pointer' }} onClick={() => onNavigate?.('dashboard')}>Home</span>
           <span style={{ color: '#64748b' }}>/</span>
@@ -105,7 +167,11 @@ export default function NotificationSettings({ onLogout, onNavigate }: Notificat
                 <h3 style={{ color: 'white', fontSize: '14px', fontWeight: "400", margin: 0 }}>General</h3>
               </div>
               <div style={{ padding: '24px' }}>
-                <FormField label="Firebase Project ID" value="chota-beta-customer" />
+                <FormField 
+                  label="Firebase Project ID" 
+                  value={settings.notify_firebase_project_id} 
+                  onChange={(e: any) => updateSetting('notify_firebase_project_id', e.target.value)}
+                />
                 
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', color: 'white', fontSize: '13px', fontWeight: "400", marginBottom: '8px' }}>Service Account File</label>
@@ -209,8 +275,26 @@ export default function NotificationSettings({ onLogout, onNavigate }: Notificat
 
             {/* Bottom Action Button */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-              <button style={{ backgroundColor: '#007bff', color: 'white', border: 'none', padding: '12px 32px', borderRadius: '6px', fontSize: '14px', fontWeight: "400", cursor: 'pointer' }}>
-                Save Settings
+              <button 
+                onClick={handleSave}
+                disabled={saving}
+                style={{ 
+                  backgroundColor: '#007bff', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '12px 32px', 
+                  borderRadius: '6px', 
+                  fontSize: '14px', 
+                  fontWeight: "600", 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {saving && <Loader2 size={16} className="animate-spin" />}
+                {saving ? 'Saving...' : 'Save Settings'}
               </button>
             </div>
           </div>

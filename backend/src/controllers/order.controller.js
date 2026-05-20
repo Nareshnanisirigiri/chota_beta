@@ -61,6 +61,41 @@ const updateOrderItem = asyncHandler(async (req, res) => {
   });
 });
 
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+const createOrderItem = asyncHandler(async (req, res) => {
+  const { orderId, customerName, productName, quantity, status, price } = req.body;
+
+  const uuid = generateUUID();
+  const subtotal = (price || 0) * (quantity || 1);
+
+  // 1. Insert into orders table
+  const orderRes = await query(
+    `INSERT INTO orders (uuid, billing_name, status, total_payable, final_total, subtotal, created_at, updated_at) 
+     VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+    [uuid, customerName || 'Walk-in Customer', status || 'pending', subtotal, subtotal, subtotal]
+  );
+
+  const newOrderId = orderRes.insertId;
+
+  // 2. Insert into order_items table
+  await query(
+    `INSERT INTO order_items (order_id, title, quantity, price, subtotal, status, created_at, updated_at) 
+     VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+    [newOrderId, productName || 'Product', quantity || 1, price || 0, subtotal, status || 'pending']
+  );
+
+  res.status(201).json({
+    success: true,
+    message: "Order item created successfully",
+  });
+});
+
 const deleteOrderItem = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -75,5 +110,6 @@ const deleteOrderItem = asyncHandler(async (req, res) => {
 module.exports = {
   getOrderItems,
   updateOrderItem,
+  createOrderItem,
   deleteOrderItem,
 };

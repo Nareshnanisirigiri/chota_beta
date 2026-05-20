@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import {
   RefreshCcw,
   ChevronDown,
@@ -8,7 +9,7 @@ import {
   ChevronsRight,
   Download,
   Database,
-  ArrowLeft,
+  ArrowLeft
 } from 'lucide-react';
 import Navbar from '../Navbar';
 
@@ -16,6 +17,23 @@ interface EarningHistoryProps {
   onLogout: () => void;
   onNavigate: (page: string) => void;
 }
+
+interface EarningLog {
+  id: number;
+  order_id: number;
+  delivery_boy_name: string;
+  total_earnings: string | number;
+  payment_status: string;
+  paid_at: string;
+  transaction_id: string | null;
+}
+
+interface DeliveryBoy {
+  id: number;
+  full_name: string;
+}
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://chotabeta-backend.onrender.com');
 
 const SortIcons = () => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', opacity: 0.3 }}>
@@ -25,7 +43,92 @@ const SortIcons = () => (
 );
 
 export default function EarningHistory({ onLogout, onNavigate }: EarningHistoryProps) {
-  const [hoveredBtn, setHoveredBtn] = React.useState<string | null>(null);
+  const [hoveredBtn, setHoveredBtn] = useState<string | null>(null);
+  
+  // Data States
+  const [history, setHistory] = useState<EarningLog[]>([]);
+  const [deliveryBoys, setDeliveryBoys] = useState<DeliveryBoy[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  
+  // Search & Filters
+  const [search, setSearch] = useState<string>('');
+  const [selectedBoyId, setSelectedBoyId] = useState<string>('');
+  
+  // Pagination
+  const [page, setPage] = useState<number>(1);
+  const [limit, setLimit] = useState<number>(10);
+
+  const fetchHistory = async () => {
+    setLoading(true);
+    try {
+      const params: any = { search };
+      if (selectedBoyId) params.delivery_boy_id = selectedBoyId;
+      
+      const res = await axios.get(`${BASE_URL}/api/delivery-boys/earnings-history`, { params });
+      if (res.data.success) {
+        setHistory(res.data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching earning history:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDeliveryBoys = async () => {
+    try {
+      const res = await axios.get(`${BASE_URL}/api/delivery-boys?limit=1000`);
+      if (res.data.success) {
+        setDeliveryBoys(res.data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching delivery boys list:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDeliveryBoys();
+  }, []);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [selectedBoyId, search]);
+
+  const handleExport = () => {
+    const csvHeaders = "ID,Order ID,Delivery Boy,Total Earnings,Payment Status,Paid At,Transaction ID";
+    const csvRows = history.map(e => 
+      `"${e.id}","${e.order_id}","${e.delivery_boy_name}","${parseFloat(String(e.total_earnings)).toFixed(2)}","${e.payment_status}","${e.paid_at}","${e.transaction_id || ''}"`
+    );
+    const csvContent = "data:text/csv;charset=utf-8," + [csvHeaders, ...csvRows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `earnings_history_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const formatCurrency = (val: string | number) => {
+    const num = parseFloat(String(val));
+    return isNaN(num) ? '₹0.00' : `₹${num.toFixed(2)}`;
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Pagination Math
+  const totalEntries = history.length;
+  const totalPages = Math.ceil(totalEntries / limit) || 1;
+  const paginatedHistory = history.slice((page - 1) * limit, page * limit);
 
   const headers = [
     { label: "ID", width: "70px" },
@@ -34,8 +137,7 @@ export default function EarningHistory({ onLogout, onNavigate }: EarningHistoryP
     { label: "TOTAL EARNINGS", width: "160px" },
     { label: "PAYMENT STATUS", width: "180px" },
     { label: "PAID AT", width: "160px" },
-    { label: "TRANSACTION ID", width: "180px" },
-    { label: "ACTION", width: "90px" }
+    { label: "TRANSACTION ID", width: "180px" }
   ];
 
   return (
@@ -50,7 +152,7 @@ export default function EarningHistory({ onLogout, onNavigate }: EarningHistoryP
           <div>
             <h1 className="text-white text-[18px] font-bold tracking-tight">Payment History</h1>
             <nav className="flex items-center gap-2 text-[12px] mt-1">
-              <span className="text-blue-500 font-medium cursor-pointer hover:underline">Home</span>
+              <span className="text-blue-500 font-medium cursor-pointer hover:underline" onClick={() => onNavigate?.('dashboard')}>Home</span>
               <span className="text-slate-500">/</span>
               <span className="text-blue-200/80">Earning History</span>
             </nav>
@@ -58,8 +160,15 @@ export default function EarningHistory({ onLogout, onNavigate }: EarningHistoryP
 
           <div className="flex items-center gap-2">
             <div className="relative min-w-[200px]">
-              <select className="w-full bg-[#0a0f18] border border-[#2d3748] rounded-md px-4 py-1.5 text-[12px] text-slate-300 appearance-none focus:outline-none cursor-pointer">
-                <option>Delivery Boy</option>
+              <select 
+                value={selectedBoyId}
+                onChange={(e) => { setSelectedBoyId(e.target.value); setPage(1); }}
+                className="w-full bg-[#0a0f18] border border-[#2d3748] rounded-md px-4 py-1.5 text-[12px] text-slate-300 appearance-none focus:outline-none cursor-pointer"
+              >
+                <option value="">All Delivery Boys</option>
+                {deliveryBoys.map(db => (
+                  <option key={db.id} value={db.id}>{db.full_name}</option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
@@ -68,7 +177,7 @@ export default function EarningHistory({ onLogout, onNavigate }: EarningHistoryP
               onClick={() => onNavigate?.('delivery-boys-earnings')}
               onMouseEnter={() => setHoveredBtn('back')}
               onMouseLeave={() => setHoveredBtn(null)}
-              className="flex items-center gap-2 px-4 py-1.5 transition-all duration-300 text-[13px] font-medium active:scale-95"
+              className="flex items-center gap-2 px-4 py-1.5 transition-all duration-300 text-[13px] font-medium active:scale-95 whitespace-nowrap"
               style={{
                 borderRadius: '12px',
                 border: '2px solid #3b82f6',
@@ -80,9 +189,10 @@ export default function EarningHistory({ onLogout, onNavigate }: EarningHistoryP
             </button>
 
             <button 
+              onClick={fetchHistory}
               onMouseEnter={() => setHoveredBtn('refresh')}
               onMouseLeave={() => setHoveredBtn(null)}
-              className="flex items-center gap-2 px-4 py-1.5 transition-all duration-300 text-[13px] font-medium active:scale-95"
+              className="flex items-center gap-2 px-4 py-1.5 transition-all duration-300 text-[13px] font-medium active:scale-95 whitespace-nowrap"
               style={{
                 borderRadius: '12px',
                 border: '2px solid #3b82f6',
@@ -100,24 +210,28 @@ export default function EarningHistory({ onLogout, onNavigate }: EarningHistoryP
           <div className="flex items-center gap-3">
             <input
               type="text"
-              placeholder="Search..."
-              className="min-w-[200px] bg-[#1e2736] border border-[#2d3748] rounded-md px-4 py-1.5 text-[13px] text-slate-300 focus:outline-none"
+              placeholder="Search by order or transaction ID..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="min-w-[240px] bg-[#1e2736] border border-[#2d3748] rounded-md px-4 py-1.5 text-[13px] text-slate-300 focus:outline-none"
             />
             <div className="flex items-center gap-3">
-              <select className="bg-[#1e2736] border border-[#2d3748] rounded-md pl-3 pr-8 py-1.5 text-[8px] text-slate-300 appearance-none focus:outline-none cursor-pointer">
-                <option>10</option>
-                <option>25</option>
-                <option>50</option>
+              <select 
+                value={limit}
+                onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+                className="bg-[#1e2736] border border-[#2d3748] rounded-md pl-3 pr-8 py-1.5 text-[12px] text-slate-300 appearance-none focus:outline-none cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
               </select>
-              <span className="text-[13px] text-slate-100">entries per page</span>
+              <span className="text-[13px] text-slate-400">entries per page</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <button className="bg-[#0a0f18] border border-[#2d3748] px-4 py-1.5 rounded-xl text-[13px] text-slate-200" style={{ borderRadius: '12px' }}>
-              Columns <ChevronDown size={14} className="inline opacity-60" />
-            </button>
             <button 
+              onClick={handleExport}
               onMouseEnter={() => setHoveredBtn('export')}
               onMouseLeave={() => setHoveredBtn(null)}
               className="flex items-center gap-2 px-4 py-1.5 text-[13px] font-medium transition-all duration-300 active:scale-95"
@@ -135,7 +249,7 @@ export default function EarningHistory({ onLogout, onNavigate }: EarningHistoryP
 
         {/* Row 3: Table Section with SOLID WHITE HEADER BORDER */}
         <div className="border border-[#2d3748] rounded-t-sm overflow-x-auto" style={{ overflowY: 'hidden', scrollbarWidth: 'thin', scrollbarColor: '#3b82f6 #1e2736' }}>
-          <table className="w-full text-left border-separate border-spacing-0 min-w-[1200px]">
+          <table className="w-full text-left border-separate border-spacing-0 min-w-[1100px]">
             <thead>
               <tr style={{ backgroundColor: '#1e2736' }}>
                 {headers.map((header, idx) => (
@@ -166,14 +280,41 @@ export default function EarningHistory({ onLogout, onNavigate }: EarningHistoryP
               </tr>
             </thead>
             <tbody style={{ backgroundColor: '#0c101a' }}>
-              <tr>
-                <td colSpan={8} className="px-6 py-28 text-center bg-[#0c101a]">
-                  <div className="flex flex-col items-center justify-center gap-4">
-                    <Database size={52} className="text-slate-600 opacity-60" />
-                    <p className="text-[16px] text-slate-500 font-medium tracking-wide">No data available.</p>
-                  </div>
-                </td>
-              </tr>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-28 text-center bg-[#0c101a]">
+                    <div className="flex items-center justify-center gap-3">
+                      <RefreshCcw size={20} className="animate-spin text-blue-500" />
+                      <p className="text-[16px] text-slate-400 font-medium tracking-wide">Loading earning history...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : paginatedHistory.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-28 text-center bg-[#0c101a]">
+                    <div className="flex flex-col items-center justify-center gap-4">
+                      <Database size={52} className="text-slate-600 opacity-60" />
+                      <p className="text-[16px] text-slate-500 font-medium tracking-wide">No data available.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                paginatedHistory.map((log) => (
+                  <tr key={log.id} className="hover:bg-[#141b2d] border-b border-[#1e293b]">
+                    <td className="px-4 py-3.5 border-b border-[#1e293b] text-slate-300 text-[13px]">{log.id}</td>
+                    <td className="px-4 py-3.5 border-b border-[#1e293b] text-white font-medium text-[13px]">#{log.order_id}</td>
+                    <td className="px-4 py-3.5 border-b border-[#1e293b] text-slate-200 font-medium text-[13px]">{log.delivery_boy_name}</td>
+                    <td className="px-4 py-3.5 border-b border-[#1e293b] text-emerald-400 font-bold text-[14px]">{formatCurrency(log.total_earnings)}</td>
+                    <td className="px-4 py-3.5 border-b border-[#1e293b] text-slate-300 text-[13px]">
+                      <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 px-2.5 py-0.5 rounded-full text-[12px] font-medium capitalize">
+                        {log.payment_status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 border-b border-[#1e293b] text-slate-400 text-[12px]">{formatDate(log.paid_at)}</td>
+                    <td className="px-4 py-3.5 border-b border-[#1e293b] text-slate-300 font-mono text-[13px]">{log.transaction_id || 'N/A'}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -181,24 +322,40 @@ export default function EarningHistory({ onLogout, onNavigate }: EarningHistoryP
         {/* Signature White Highlight Line */}
         <div className="h-[2px] bg-white opacity-100 w-full mb-8"></div>
 
-        {/* Row 4: Footer */}
+        {/* Footers Pagination */}
         <div className="flex justify-between items-center px-1">
           <p className="text-[13px] text-slate-400 font-extralight tracking-tight opacity-70" style={{ fontWeight: '200' }}>
-            Showing 0 to 0 of 0 entries
+            Showing {paginatedHistory.length > 0 ? (page - 1) * limit + 1 : 0} to {Math.min(page * limit, totalEntries)} of {totalEntries} entries
           </p>
 
           <div className="flex items-center gap-4">
-            <button className="text-slate-600 opacity-40 cursor-not-allowed">
+            <button 
+              onClick={() => setPage(1)} 
+              disabled={page === 1}
+              className={`text-slate-400 transition-colors ${page === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:text-white'}`}
+            >
               <ChevronsLeft size={16} />
             </button>
-            <button className="text-slate-600 opacity-40 cursor-not-allowed">
+            <button 
+              onClick={() => setPage(p => Math.max(p - 1, 1))} 
+              disabled={page === 1}
+              className={`text-slate-400 transition-colors ${page === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:text-white'}`}
+            >
               <ChevronLeft size={16} />
             </button>
-            <div className="bg-blue-600 px-3 py-0.5 rounded text-white text-[12px] font-extralight" style={{ fontWeight: '200' }}>1</div>
-            <button className="text-slate-400 hover:text-white transition-colors">
+            <div className="bg-blue-600 px-3 py-0.5 rounded text-white text-[12px] font-medium">{page}</div>
+            <button 
+              onClick={() => setPage(p => Math.min(p + 1, totalPages))} 
+              disabled={page === totalPages}
+              className={`text-slate-400 transition-colors ${page === totalPages ? 'opacity-30 cursor-not-allowed' : 'hover:text-white'}`}
+            >
               <ChevronRight size={16} />
             </button>
-            <button className="text-slate-400 hover:text-white transition-colors">
+            <button 
+              onClick={() => setPage(totalPages)} 
+              disabled={page === totalPages}
+              className={`text-slate-400 transition-colors ${page === totalPages ? 'opacity-30 cursor-not-allowed' : 'hover:text-white'}`}
+            >
               <ChevronsRight size={16} />
             </button>
           </div>

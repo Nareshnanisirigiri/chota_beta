@@ -4,7 +4,8 @@ import { toast } from 'sonner';
 import {
   ChevronRight,
   ChevronDown,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 import Navbar from '../Navbar';
 
@@ -33,6 +34,28 @@ export default function EditSeller({ onLogout, onNavigate, sellerId }: EditSelle
   const [visibilityStatus, setVisibilityStatus] = useState('visible');
   
   const [isLoading, setIsLoading] = useState(true);
+
+  const [documents, setDocuments] = useState<Record<string, { file: File, preview: string, size: string }>>({});
+
+  const handleFileChange = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const preview = URL.createObjectURL(file);
+      const size = (file.size / 1024).toFixed(1) + ' KB';
+      setDocuments(prev => ({ ...prev, [id]: { file, preview, size } }));
+    }
+  };
+
+  const removeFile = (id: string) => {
+    setDocuments(prev => {
+      const newDocs = { ...prev };
+      if (newDocs[id]) {
+        URL.revokeObjectURL(newDocs[id].preview);
+        delete newDocs[id];
+      }
+      return newDocs;
+    });
+  };
 
   const menuItems = [
     'Basic Details',
@@ -79,6 +102,7 @@ export default function EditSeller({ onLogout, onNavigate, sellerId }: EditSelle
               setLandmark(fullDetails.landmark || '');
               setState(fullDetails.state || '');
               setZipcode(fullDetails.zipcode || '');
+              setDocuments(fullDetails.documents || {});
               
               if (!sim) {
                 setVerificationStatus(fullDetails.verification_status || seller.verificationStatus || 'approved');
@@ -105,6 +129,7 @@ export default function EditSeller({ onLogout, onNavigate, sellerId }: EditSelle
           setLandmark(seller.landmark || '');
           setState(seller.state || '');
           setZipcode(seller.zipcode || '');
+          setDocuments(seller.documents || {});
           setVerificationStatus(seller.verification_status || 'approved');
           setVisibilityStatus(seller.visibility_status || 'visible');
         } else {
@@ -125,18 +150,33 @@ export default function EditSeller({ onLogout, onNavigate, sellerId }: EditSelle
     try {
       let isSuccess = false;
       try {
-        const response = await axios.put(`${BASE_URL}/api/sellers/${sellerId}`, {
-          seller: sellerName,
-          email,
-          mobile,
-          address,
-          city,
-          landmark,
-          state,
-          zipcode,
-          country,
-          verificationStatus,
-          visibilityStatus
+        const formData = new FormData();
+        formData.append('seller', sellerName);
+        formData.append('email', email);
+        formData.append('mobile', mobile);
+        formData.append('address', address);
+        formData.append('city', city);
+        formData.append('landmark', landmark);
+        formData.append('state', state);
+        formData.append('zipcode', zipcode);
+        formData.append('country', country);
+        formData.append('verificationStatus', verificationStatus);
+        formData.append('visibilityStatus', visibilityStatus);
+
+        // Add documents files
+        Object.keys(documents).forEach(key => {
+          const doc = documents[key];
+          if (doc && doc.file instanceof File) {
+            formData.append(key, doc.file);
+          } else if (doc && doc.preview) {
+            formData.append(`${key}_existing`, doc.preview);
+          }
+        });
+
+        const response = await axios.put(`${BASE_URL}/api/sellers/${sellerId}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
         });
         if (response.data.success) {
           isSuccess = true;
@@ -424,18 +464,45 @@ export default function EditSeller({ onLogout, onNavigate, sellerId }: EditSelle
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   {[
-                    { label: 'Business License', hint: 'Upload a clear copy of your business license. Accepted formats: JPEG, PNG, PDF. Max size: 2MB.' },
-                    { label: 'Articles of Incorporation', hint: "Provide your company's articles of incorporation or certificate of incorporation. File must be clear and readable." },
-                    { label: 'National Identity Card', hint: 'Upload a government-issued photo ID (passport, driver\'s license, or national ID card).' },
-                    { label: 'Authorized Signature', hint: 'Upload a document with authorized signature samples or signature authorization letter.' }
+                    { label: 'Business License', hint: 'Upload a clear copy of your business license. Accepted formats: JPEG, PNG, PDF. Max size: 2MB.', id: 'license' },
+                    { label: 'Articles of Incorporation', hint: "Provide your company's articles of incorporation or certificate of incorporation. File must be clear and readable.", id: 'incorporation' },
+                    { label: 'National Identity Card', hint: 'Upload a government-issued photo ID (passport, driver\'s license, or national ID card).', id: 'idcard' },
+                    { label: 'Authorized Signature', hint: 'Upload a document with authorized signature samples or signature authorization letter.', id: 'signature' }
                   ].map((doc) => (
                     <div key={doc.label}>
                       <label style={labelStyle}>
                         {doc.label} <span style={{ color: '#ef4444' }}>*</span>
                       </label>
-                      <div style={{ width: '100%', height: '80px', borderRadius: '12px', backgroundColor: '#eeeeee', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.3s' }}>
-                        <p style={{ color: '#555555', fontSize: '15px', fontWeight: '400' }}>Drag & Drop your files or <span style={{ color: '#555555', textDecoration: 'underline' }}>Browse</span></p>
-                      </div>
+                      
+                      {documents[doc.id] ? (
+                        <div style={{ position: 'relative', width: '100%', height: '200px', backgroundColor: '#1e293b', borderRadius: '12px', overflow: 'hidden', display: 'flex' }}>
+                          <div style={{ position: 'absolute', top: '12px', left: '12px', zIndex: 10, display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                            <button 
+                              onClick={() => removeFile(doc.id)} 
+                              style={{ backgroundColor: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white' }}
+                            >
+                              <X size={14} />
+                            </button>
+                            <div style={{ color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                              <div style={{ fontSize: '13px', fontWeight: '500' }}>{documents[doc.id].file.name}</div>
+                              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>{documents[doc.id].size}</div>
+                            </div>
+                          </div>
+                          {documents[doc.id].file.type.startsWith('image/') ? (
+                            <img src={documents[doc.id].preview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '14px' }}>
+                              PDF Document
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ position: 'relative', width: '100%', height: '80px', borderRadius: '12px', backgroundColor: '#eeeeee', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.3s' }}>
+                          <input type="file" id={doc.id} accept="image/*,.pdf" onChange={(e) => handleFileChange(doc.id, e)} style={{ position: 'absolute', width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
+                          <p style={{ color: '#555555', fontSize: '15px', fontWeight: '400', pointerEvents: 'none' }}>Drag & Drop your files or <span style={{ color: '#555555', textDecoration: 'underline' }}>Browse</span></p>
+                        </div>
+                      )}
+                      
                       <p style={{ color: '#64748b', fontSize: '12px', marginTop: '12px', fontWeight: '200' }}>{doc.hint}</p>
                     </div>
                   ))}

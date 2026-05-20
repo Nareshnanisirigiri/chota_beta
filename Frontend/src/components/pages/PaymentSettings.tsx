@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   CreditCard,
   ChevronDown,
   DollarSign,
   Wallet,
-  Coins
+  Coins,
+  Loader2
 } from 'lucide-react';
 import Navbar from '../Navbar';
 
@@ -13,20 +15,26 @@ interface PaymentSettingsProps {
   onNavigate?: (page: string) => void;
 }
 
-const ToggleField = ({ label, enabled, subtitle = "" }: any) => (
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://chotabeta-backend.onrender.com');
+
+const ToggleField = ({ label, enabled, onToggle, subtitle = "" }: any) => (
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
     <div>
       <label style={{ display: 'block', color: 'white', fontSize: '13px', fontWeight: "400" }}>{label}</label>
       {subtitle && <p style={{ color: '#64748b', fontSize: '11px', margin: '4px 0 0 0' }}>{subtitle}</p>}
     </div>
-    <div style={{ 
-      width: '40px', 
-      height: '20px', 
-      backgroundColor: enabled ? '#007bff' : '#2d3748', 
-      borderRadius: '10px', 
-      position: 'relative', 
-      cursor: 'pointer' 
-    }}>
+    <div 
+      onClick={onToggle}
+      style={{ 
+        width: '40px', 
+        height: '20px', 
+        backgroundColor: enabled ? '#007bff' : '#2d3748', 
+        borderRadius: '10px', 
+        position: 'relative', 
+        cursor: 'pointer',
+        transition: 'all 0.3s'
+      }}
+    >
       <div style={{ 
         width: '16px', 
         height: '16px', 
@@ -35,14 +43,81 @@ const ToggleField = ({ label, enabled, subtitle = "" }: any) => (
         position: 'absolute', 
         top: '2px', 
         left: enabled ? '22px' : '2px',
-        transition: 'left 0.2s'
+        transition: 'all 0.3s'
       }}></div>
     </div>
   </div>
 );
 
 export default function PaymentSettings({ onLogout, onNavigate }: PaymentSettingsProps) {
-  const [activeTab, setActiveTab] = React.useState('Flutterwave Payment');
+  const [activeTab, setActiveTab] = useState('Flutterwave Payment');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [settings, setSettings] = useState({
+    payment_stripe_enabled: false,
+    payment_razorpay_enabled: false,
+    payment_paystack_enabled: false,
+    payment_flutterwave_enabled: false,
+    payment_wallet_enabled: false,
+    payment_cod_enabled: false,
+  });
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${BASE_URL}/api/settings`);
+      if (res.data.success && res.data.data) {
+        const d = res.data.data;
+        setSettings(prev => ({
+          ...prev,
+          ...d,
+          payment_stripe_enabled: d.payment_stripe_enabled === 'true',
+          payment_razorpay_enabled: d.payment_razorpay_enabled === 'true',
+          payment_paystack_enabled: d.payment_paystack_enabled === 'true',
+          payment_flutterwave_enabled: d.payment_flutterwave_enabled === 'true',
+          payment_wallet_enabled: d.payment_wallet_enabled === 'true',
+          payment_cod_enabled: d.payment_cod_enabled === 'true',
+        }));
+      }
+    } catch (err) {
+      console.error("Error fetching payment settings:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        ...settings,
+        payment_stripe_enabled: String(settings.payment_stripe_enabled),
+        payment_razorpay_enabled: String(settings.payment_razorpay_enabled),
+        payment_paystack_enabled: String(settings.payment_paystack_enabled),
+        payment_flutterwave_enabled: String(settings.payment_flutterwave_enabled),
+        payment_wallet_enabled: String(settings.payment_wallet_enabled),
+        payment_cod_enabled: String(settings.payment_cod_enabled),
+      };
+      const res = await axios.post(`${BASE_URL}/api/settings`, payload);
+      if (res.data.success) {
+        alert('Payment Settings saved successfully!');
+      }
+    } catch (err) {
+      console.error("Error saving payment settings:", err);
+      alert('Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateSetting = (key: string, value: any) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
 
   const scrollToSection = (sectionId: string, label: string) => {
     setActiveTab(label);
@@ -70,8 +145,19 @@ export default function PaymentSettings({ onLogout, onNavigate }: PaymentSetting
     { id: 'cod', label: 'Cash on Delivery' },
   ];
 
+  if (loading) {
+    return (
+      <div className="p-8 font-sans selection:bg-blue-500/30 text-white min-h-screen flex items-center justify-center bg-[#070b14]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-blue-500 w-10 h-10" />
+          <p className="text-slate-400 font-medium">Loading payment settings...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ backgroundColor: '#070b14', minHeight: '100vh', width: '100%', padding: '32px', boxSizing: 'border-box' }}>
+    <div style={{ backgroundColor: '#070b14', minHeight: '100vh', width: '100%', padding: '32px', boxSizing: 'border-box' }} className="font-sans">
       <Navbar onLogout={onLogout} />
 
       <div style={{ marginTop: '32px' }}>
@@ -119,7 +205,11 @@ export default function PaymentSettings({ onLogout, onNavigate }: PaymentSetting
                 <h3 style={{ color: 'white', fontSize: '14px', fontWeight: "400", margin: 0 }}>Stripe Payment</h3>
               </div>
               <div style={{ padding: '24px' }}>
-                <ToggleField label="Enable Stripe Payment" enabled={false} />
+                <ToggleField 
+                  label="Enable Stripe Payment" 
+                  enabled={settings.payment_stripe_enabled} 
+                  onToggle={() => updateSetting('payment_stripe_enabled', !settings.payment_stripe_enabled)}
+                />
               </div>
             </div>
 
@@ -129,7 +219,11 @@ export default function PaymentSettings({ onLogout, onNavigate }: PaymentSetting
                 <h3 style={{ color: 'white', fontSize: '14px', fontWeight: "400", margin: 0 }}>Razorpay Payment</h3>
               </div>
               <div style={{ padding: '24px' }}>
-                <ToggleField label="Enable Razorpay Payment" enabled={false} />
+                <ToggleField 
+                  label="Enable Razorpay Payment" 
+                  enabled={settings.payment_razorpay_enabled} 
+                  onToggle={() => updateSetting('payment_razorpay_enabled', !settings.payment_razorpay_enabled)}
+                />
               </div>
             </div>
 
@@ -139,7 +233,11 @@ export default function PaymentSettings({ onLogout, onNavigate }: PaymentSetting
                 <h3 style={{ color: 'white', fontSize: '14px', fontWeight: "400", margin: 0 }}>Paystack Payment</h3>
               </div>
               <div style={{ padding: '24px' }}>
-                <ToggleField label="Enable Paystack Payment" enabled={false} />
+                <ToggleField 
+                  label="Enable Paystack Payment" 
+                  enabled={settings.payment_paystack_enabled} 
+                  onToggle={() => updateSetting('payment_paystack_enabled', !settings.payment_paystack_enabled)}
+                />
               </div>
             </div>
 
@@ -149,7 +247,11 @@ export default function PaymentSettings({ onLogout, onNavigate }: PaymentSetting
                 <h3 style={{ color: 'white', fontSize: '14px', fontWeight: "400", margin: 0 }}>Flutterwave Payment</h3>
               </div>
               <div style={{ padding: '24px' }}>
-                <ToggleField label="Enable Flutterwave Payment" enabled={false} />
+                <ToggleField 
+                  label="Enable Flutterwave Payment" 
+                  enabled={settings.payment_flutterwave_enabled} 
+                  onToggle={() => updateSetting('payment_flutterwave_enabled', !settings.payment_flutterwave_enabled)}
+                />
               </div>
             </div>
 
@@ -159,7 +261,12 @@ export default function PaymentSettings({ onLogout, onNavigate }: PaymentSetting
                 <h3 style={{ color: 'white', fontSize: '14px', fontWeight: "400", margin: 0 }}>Wallet Payment</h3>
               </div>
               <div style={{ padding: '24px' }}>
-                <ToggleField label="Enable Wallet Payment" subtitle="Enable wallet payment for users to pay for orders using their wallet balance." enabled={false} />
+                <ToggleField 
+                  label="Enable Wallet Payment" 
+                  subtitle="Enable wallet payment for users to pay for orders using their wallet balance." 
+                  enabled={settings.payment_wallet_enabled} 
+                  onToggle={() => updateSetting('payment_wallet_enabled', !settings.payment_wallet_enabled)}
+                />
               </div>
             </div>
 
@@ -169,14 +276,36 @@ export default function PaymentSettings({ onLogout, onNavigate }: PaymentSetting
                 <h3 style={{ color: 'white', fontSize: '14px', fontWeight: "400", margin: 0 }}>Cash on Delivery</h3>
               </div>
               <div style={{ padding: '24px' }}>
-                <ToggleField label="Enable Cash on Delivery" enabled={false} />
+                <ToggleField 
+                  label="Enable Cash on Delivery" 
+                  enabled={settings.payment_cod_enabled} 
+                  onToggle={() => updateSetting('payment_cod_enabled', !settings.payment_cod_enabled)}
+                />
               </div>
             </div>
 
             {/* Bottom Action Button */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', marginBottom: '64px' }}>
-              <button style={{ backgroundColor: '#007bff', color: 'white', border: 'none', padding: '12px 32px', borderRadius: '6px', fontSize: '14px', fontWeight: "400", cursor: 'pointer', transition: 'all 0.2s' }}>
-                Submit
+              <button 
+                onClick={handleSave}
+                disabled={saving}
+                style={{ 
+                  backgroundColor: '#007bff', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '12px 32px', 
+                  borderRadius: '6px', 
+                  fontSize: '14px', 
+                  fontWeight: "600", 
+                  cursor: 'pointer', 
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                {saving && <Loader2 size={16} className="animate-spin" />}
+                {saving ? 'Saving...' : 'Submit All Changes'}
               </button>
             </div>
           </div>

@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Loader2 } from 'lucide-react';
 import Navbar from '../Navbar';
 
 interface StorageSettingsProps {
@@ -6,14 +8,17 @@ interface StorageSettingsProps {
   onNavigate?: (page: string) => void;
 }
 
-const FormField = ({ label, value, placeholder, required = false, type = "text" }: any) => (
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://chotabeta-backend.onrender.com');
+
+const FormField = ({ label, value, onChange, placeholder, required = false, type = "text" }: any) => (
   <div style={{ marginBottom: '20px' }}>
     <label style={{ display: 'block', color: 'white', fontSize: '13px', fontWeight: "400", marginBottom: '8px' }}>
       {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
     </label>
     <input 
       type={type} 
-      defaultValue={value}
+      value={value}
+      onChange={onChange}
       placeholder={placeholder} 
       style={{ 
         width: '100%', 
@@ -31,8 +36,70 @@ const FormField = ({ label, value, placeholder, required = false, type = "text" 
 );
 
 export default function StorageSettings({ onLogout, onNavigate }: StorageSettingsProps) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [settings, setSettings] = useState({
+    aws_access_key: '',
+    aws_secret_key: '',
+    aws_region: '',
+    aws_bucket: '',
+    aws_asset_url: ''
+  });
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${BASE_URL}/api/settings`);
+      if (res.data.success && res.data.data) {
+        setSettings(prev => ({
+          ...prev,
+          ...res.data.data
+        }));
+      }
+    } catch (err) {
+      console.error("Error fetching storage settings:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await axios.post(`${BASE_URL}/api/settings`, settings);
+      if (res.data.success) {
+        alert('Storage Settings saved successfully!');
+      }
+    } catch (err) {
+      console.error("Error saving storage settings:", err);
+      alert('Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateSetting = (key: string, value: any) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8 font-sans selection:bg-blue-500/30 text-white min-h-screen flex items-center justify-center bg-[#070b14]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-blue-500 w-10 h-10" />
+          <p className="text-slate-400 font-medium">Loading storage settings...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ backgroundColor: '#070b14', minHeight: '100vh', width: '100%', padding: '32px', boxSizing: 'border-box' }}>
+    <div style={{ backgroundColor: '#070b14', minHeight: '100vh', width: '100%', padding: '32px', boxSizing: 'border-box' }} className="font-sans">
       <Navbar onLogout={onLogout} />
 
       <div style={{ marginTop: '32px' }}>
@@ -73,18 +140,35 @@ export default function StorageSettings({ onLogout, onNavigate }: StorageSetting
               </div>
               
               <div style={{ padding: '24px' }}>
-                <FormField label="AWS Access Key ID" required placeholder="Enter AWS Access Key ID" />
-                <FormField label="AWS Secret Access Key" required placeholder="Enter AWS Secret Access Key" />
-                <FormField label="AWS Region" required placeholder="Enter AWS Region (e.g., us-east-1)" />
-                <FormField label="AWS Bucket" required placeholder="Enter AWS Bucket name" />
-                <FormField label="AWS Asset URL" required placeholder="Enter AWS Asset URL" />
+                <FormField label="AWS Access Key ID" required value={settings.aws_access_key} onChange={(e: any) => updateSetting('aws_access_key', e.target.value)} placeholder="Enter AWS Access Key ID" />
+                <FormField label="AWS Secret Access Key" required type="password" value={settings.aws_secret_key} onChange={(e: any) => updateSetting('aws_secret_key', e.target.value)} placeholder="Enter AWS Secret Access Key" />
+                <FormField label="AWS Region" required value={settings.aws_region} onChange={(e: any) => updateSetting('aws_region', e.target.value)} placeholder="Enter AWS Region (e.g., us-east-1)" />
+                <FormField label="AWS Bucket" required value={settings.aws_bucket} onChange={(e: any) => updateSetting('aws_bucket', e.target.value)} placeholder="Enter AWS Bucket name" />
+                <FormField label="AWS Asset URL" required value={settings.aws_asset_url} onChange={(e: any) => updateSetting('aws_asset_url', e.target.value)} placeholder="Enter AWS Asset URL" />
               </div>
             </div>
 
             {/* Global Submit Button */}
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button style={{ backgroundColor: '#007bff', color: 'white', border: 'none', padding: '12px 32px', borderRadius: '6px', fontSize: '14px', fontWeight: "400", cursor: 'pointer', transition: 'all 0.2s' }}>
-                Submit
+              <button 
+                onClick={handleSave}
+                disabled={saving}
+                style={{ 
+                  backgroundColor: '#007bff', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '12px 32px', 
+                  borderRadius: '6px', 
+                  fontSize: '14px', 
+                  fontWeight: "600", 
+                  cursor: 'pointer', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  transition: 'all 0.2s'
+                }}>
+                {saving && <Loader2 size={16} className="animate-spin" />}
+                {saving ? 'Saving...' : 'Submit'}
               </button>
             </div>
           </div>

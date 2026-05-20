@@ -153,6 +153,22 @@ export default function Sellers({ onLogout, onNavigate }: SellersProps) {
     setShowExportDropdown(false);
   };
 
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this seller? This action cannot be undone.')) return;
+    try {
+      const response = await axios.delete(`${BASE_URL}/api/sellers/${id}`);
+      if (response.data.success) {
+        toast.success('Seller deleted successfully');
+        fetchSellers();
+      } else {
+        toast.error('Failed to delete seller');
+      }
+    } catch (error) {
+      console.error('Error deleting seller:', error);
+      toast.error('Failed to delete seller');
+    }
+  };
+
   // Toggle Column Visibility
   const toggleColumn = (col: keyof typeof visibleColumns) => {
     setVisibleColumns(prev => ({ ...prev, [col]: !prev[col] }));
@@ -476,6 +492,7 @@ export default function Sellers({ onLogout, onNavigate }: SellersProps) {
                             <Edit2 size={18} />
                           </button>
                           <button
+                            onClick={() => handleDelete(row.id)}
                             onMouseEnter={() => setHoveredAction(`${row.id}-delete`)}
                             onMouseLeave={() => setHoveredAction(null)}
                             className="w-8 h-8 flex items-center justify-center transition-all duration-300 active:scale-90"

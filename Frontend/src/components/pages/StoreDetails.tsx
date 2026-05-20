@@ -250,9 +250,14 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
             <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
               <div style={{ width: '100px', height: '100px', backgroundColor: '#0c111d', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #2d3748' }}>
                 <img
-                  src={data.logo || "https://via.placeholder.com/100?text=LOGO"}
+                  src={data.logo || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100%" height="100%" fill="%230c111d"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="%2364748b">LOGO</text></svg>'}
                   alt="Logo"
                   style={{ maxWidth: '100%', maxHeight: '100%' }}
+                  onError={(e) => {
+                    const target = e.currentTarget as HTMLImageElement;
+                    target.onerror = null;
+                    target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100%" height="100%" fill="%230c111d"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="%2364748b">LOGO</text></svg>';
+                  }}
                 />
               </div>
             </div>
@@ -260,9 +265,14 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
           <Section title="Address Proof">
             <div style={{ width: '100%', height: '100px', backgroundColor: '#0c111d', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #2d3748' }}>
               <img
-                src={data.addressProof || "https://via.placeholder.com/200x100?text=Address+Proof"}
+                src={data.addressProof || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="100%" height="100%" fill="%230c111d"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%2364748b">Address Proof</text></svg>'}
                 alt="Address Proof"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><rect width="100%" height="100%" fill="%230c111d"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%2364748b">Address Proof</text></svg>';
+                }}
               />
             </div>
           </Section>
@@ -272,18 +282,28 @@ export default function StoreDetails({ onLogout, onNavigate, storeData }: StoreD
           <Section title="Banner">
             <div style={{ width: '100%', height: '100px', backgroundColor: '#0c111d', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #2d3748' }}>
               <img
-                src={data.banner || "https://via.placeholder.com/300x100?text=Banner"}
+                src={data.banner || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="100" viewBox="0 0 300 100"><rect width="100%" height="100%" fill="%230c111d"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="16" fill="%2364748b">Banner</text></svg>'}
                 alt="Banner"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="100" viewBox="0 0 300 100"><rect width="100%" height="100%" fill="%230c111d"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="16" fill="%2364748b">Banner</text></svg>';
+                }}
               />
             </div>
           </Section>
           <Section title="Voided Check">
             <div style={{ width: '100%', height: '100px', backgroundColor: '#0c111d', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #2d3748' }}>
               <img
-                src={data.voidedCheck || "https://via.placeholder.com/300x100?text=Voided+Check"}
+                src={data.voidedCheck || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="100" viewBox="0 0 300 100"><rect width="100%" height="100%" fill="%230c111d"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="16" fill="%2364748b">Voided Check</text></svg>'}
                 alt="Voided Check"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="100" viewBox="0 0 300 100"><rect width="100%" height="100%" fill="%230c111d"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="16" fill="%2364748b">Voided Check</text></svg>';
+                }}
               />
             </div>
           </Section>
