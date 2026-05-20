@@ -3,6 +3,11 @@ const { env } = require("./src/config/env");
 const { testConnection, query } = require("./src/config/database");
 const bcrypt = require("bcryptjs");
 
+console.log("DEBUG: RENDER =", process.env.RENDER);
+console.log("DEBUG: PORT =", process.env.PORT);
+console.log("DEBUG: DB_SOURCE =", process.env.DB_SOURCE);
+console.log("DEBUG: env.dbHost =", env.dbHost);
+
 async function startServer() {
   try {
     const connection = await testConnection();
