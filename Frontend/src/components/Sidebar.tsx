@@ -122,8 +122,7 @@ export default function Sidebar({ currentPage, onNavigate, onLogout }: SidebarPr
       icon: CreditCard,
       submenu: [
         { id: 'subscription-plans', label: 'Subscription Plans', icon: CircleDot },
-        { id: 'seller-subscriptions', label: 'Seller Subscriptions', icon: CircleDot },
-        { id: 'subscription-transactions', label: 'Subscription Transactions', icon: CircleDot },
+        { id: 'seller-subscriptions', label: 'Subscribers', icon: CircleDot },
       ]
     },
     {

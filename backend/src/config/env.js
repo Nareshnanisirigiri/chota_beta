@@ -51,7 +51,7 @@ if (dbSource === "railway") {
   dbHost = process.env.DB_HOST || process.env.LOCAL_DB_HOST || "127.0.0.1";
   dbPort = Number(process.env.DB_PORT || process.env.LOCAL_DB_PORT || 3306);
   dbUser = process.env.DB_USER || process.env.LOCAL_DB_USER || "root";
-  dbPassword = process.env.DB_PASSWORD || process.env.LOCAL_DB_PASSWORD || "root";
+  dbPassword = process.env.DB_PASSWORD !== undefined ? process.env.DB_PASSWORD : (process.env.LOCAL_DB_PASSWORD !== undefined ? process.env.LOCAL_DB_PASSWORD : "root");
   dbName = process.env.DB_NAME || process.env.LOCAL_DB_NAME || "chota_beta";
 }
 

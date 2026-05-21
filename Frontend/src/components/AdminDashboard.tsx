@@ -51,6 +51,9 @@ import NotificationSettings from './pages/NotificationSettings';
 import DeliveryBoySettings from './pages/DeliveryBoySettings';
 import SellerSettings from './pages/SellerSettings';
 import SystemUpdates from './pages/SystemUpdates';
+import SubscriptionPlans from './pages/SubscriptionPlans';
+import SellerSubscriptions from './pages/SellerSubscriptions';
+import SubscriptionTransactions from './pages/SubscriptionTransactions';
 import Navbar from './Navbar';
 
 // A simple placeholder for pages that don't have a dedicated component yet
@@ -136,6 +139,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     if (currentPage === 'delivery-boy') return <DeliveryBoySettings onLogout={onLogout} onNavigate={setCurrentPage} />;
     if (currentPage === 'seller') return <SellerSettings onLogout={onLogout} onNavigate={setCurrentPage} />;
     if (currentPage === 'system-updates') return <SystemUpdates onLogout={onLogout} onNavigate={setCurrentPage} />;
+    if (currentPage === 'subscription-plans') return <SubscriptionPlans onLogout={onLogout} onNavigate={setCurrentPage} />;
+    if (currentPage === 'seller-subscriptions') return <SellerSubscriptions onLogout={onLogout} onNavigate={setCurrentPage} />;
+    if (currentPage === 'subscription-transactions') return <SubscriptionTransactions onLogout={onLogout} onNavigate={setCurrentPage} />;
 
     // For all other routes in the sidebar, show the placeholder with the formatted title
     const formattedTitle = currentPage

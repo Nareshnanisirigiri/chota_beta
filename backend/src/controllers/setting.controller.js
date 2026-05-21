@@ -133,6 +133,11 @@ const categoryMappings = {
     seller: {
         termsCondition: 'seller_terms',
         privacyPolicy: 'seller_privacy'
+    },
+    subscription: {
+        enableSubscription: 'enableSubscription',
+        subscriptionHeading: 'subscriptionHeading',
+        subscriptionDescription: 'subscriptionDescription'
     }
 };
 

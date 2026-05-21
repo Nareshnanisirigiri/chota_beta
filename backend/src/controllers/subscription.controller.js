@@ -203,12 +203,13 @@ const getSellerSubscriptions = async (req, res) => {
         const query = `
             SELECT 
                 ss.*,
-                s.store_name,
+                st_name.name as store_name,
                 u.name as seller_name,
                 u.email as seller_email,
                 sp.name as plan_name
             FROM seller_subscriptions ss
             LEFT JOIN sellers s ON ss.seller_id = s.id
+            LEFT JOIN stores st_name ON ss.seller_id = st_name.seller_id
             LEFT JOIN users u ON s.user_id = u.id
             LEFT JOIN subscription_plans sp ON ss.plan_id = sp.id
             ORDER BY ss.id DESC
@@ -227,12 +228,13 @@ const getTransactions = async (req, res) => {
         const query = `
             SELECT 
                 st.*,
-                s.store_name,
+                st_name.name as store_name,
                 u.name as seller_name,
                 u.email as seller_email,
                 sp.name as plan_name
             FROM subscription_transactions st
             LEFT JOIN sellers s ON st.seller_id = s.id
+            LEFT JOIN stores st_name ON st.seller_id = st_name.seller_id
             LEFT JOIN users u ON s.user_id = u.id
             LEFT JOIN subscription_plans sp ON st.plan_id = sp.id
             ORDER BY st.id DESC
